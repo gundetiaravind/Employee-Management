@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
@@ -11,8 +10,8 @@ import {
   X,
   Sun,
   Moon,
-  ChevronRight,
 } from "lucide-react";
+
 import { useTheme } from "../../context/ThemeContext";
 import "./OwnerDashboard.css";
 
@@ -62,99 +61,106 @@ export default function OwnerLayout() {
 
   return (
     <div className="owner-layout">
-      {menuOpen && (
-        <button
-          className="owner-mobile-overlay"
-          onClick={() => setMenuOpen(false)}
-          aria-label="Close navigation"
-        />
-      )}
 
-      <aside className={`owner-sidebar ${menuOpen ? "sidebar-open" : ""}`}>
-        <div className="owner-sidebar-header">
-          <div className="owner-logo">O</div>
-          <div className="owner-brand-text">
-            <h2>OrgConnect</h2>
-            <span>Organization workspace</span>
-          </div>
+      {/* HORIZONTAL NAVBAR */}
+      <header className="owner-header">
+        <div className="owner-header-container">
 
-          <button
-            className="owner-mobile-close"
+          {/* BRAND */}
+          <NavLink
+            to="/owner/dashboard"
+            className="owner-brand"
             onClick={() => setMenuOpen(false)}
-            aria-label="Close menu"
           >
-            <X size={20} />
-          </button>
-        </div>
+            <div className="owner-logo">
+              <Building2 size={22} />
+            </div>
 
-        <div className="owner-nav-heading">WORKSPACE</div>
+            <div className="owner-brand-text">
+              <h2>
+                Org<span>Connect</span>
+              </h2>
+              <small>Owner Workspace</small>
+            </div>
+          </NavLink>
 
-        <nav className="owner-navigation">
-          {navigation.map(({ label, path, icon: Icon }) => (
-            <NavLink
-              key={path}
-              to={path}
-              end={path === "/owner/dashboard"}
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `owner-nav-link ${isActive ? "active" : ""}`
-              }
-            >
-              <Icon size={19} strokeWidth={1.8} />
-              <span>{label}</span>
-              <ChevronRight className="owner-nav-arrow" size={15} />
-            </NavLink>
-          ))}
-        </nav>
+          {/* NAVIGATION LINKS */}
+          <nav className={`owner-nav ${menuOpen ? "open" : ""}`}>
+            {navigation.map(({ label, path, icon: Icon }) => (
+              <NavLink
+                key={path}
+                to={path}
+                end={path === "/owner/dashboard"}
+                onClick={() => setMenuOpen(false)}
+                className={({ isActive }) =>
+                  `owner-nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <Icon size={18} strokeWidth={1.8} />
+                <span>{label}</span>
+              </NavLink>
+            ))}
 
-        <div className="owner-sidebar-footer">
-          <button className="owner-signout" onClick={handleLogout}>
-            <LogOut size={17} />
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </aside>
-
-      <main className="owner-main">
-        <header className="owner-topbar">
-          <div className="owner-topbar-left">
+            {/* MOBILE LOGOUT */}
             <button
-              className="owner-mobile-menu"
-              onClick={() => setMenuOpen(true)}
-              aria-label="Open navigation"
+              className="owner-mobile-logout"
+              onClick={handleLogout}
             >
-              <Menu size={21} />
+              <LogOut size={17} />
+              <span>Sign Out</span>
+            </button>
+          </nav>
+
+          {/* RIGHT SIDE ACTIONS */}
+          <div className="owner-header-actions">
+
+            <button
+              className="owner-theme-toggle"
+              onClick={toggleTheme}
+              aria-label="Toggle color theme"
+              title="Toggle theme"
+            >
+              {theme === "light" ? (
+                <Moon size={19} />
+              ) : (
+                <Sun size={19} />
+              )}
             </button>
 
-            <div className="owner-breadcrumb">
-              <strong>Owner Workspace</strong>
+            <div className="owner-user-info">
+              <UserRound size={18} />
+              <span>{ownerName}</span>
             </div>
+
+            <button
+              className="owner-logout"
+              onClick={handleLogout}
+            >
+              <LogOut size={17} />
+              <span>Sign Out</span>
+            </button>
+
+            {/* MOBILE MENU BUTTON */}
+            <button
+              className="owner-mobile-menu"
+              onClick={() => setMenuOpen((previous) => !previous)}
+              aria-label="Toggle navigation"
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <X size={21} /> : <Menu size={21} />}
+            </button>
+
           </div>
+        </div>
+      </header>
 
-          <div className="owner-topbar-actions">
-            
-  <button
-            className="theme-toggle"
-            onClick={toggleTheme}
-            aria-label="Toggle color theme"
-            title="Toggle theme"
-          >
-            {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
-          </button>
- <div className="owner-workspace-top">
-  <strong>
-    <Building2 size={20} />
-    My Organization
-  </strong>
-</div>
-
-</div>
-        </header>
-
+      {/* DASHBOARD CONTENT */}
+      <main className="owner-main">
         <div className="owner-page-content">
           <Outlet />
         </div>
       </main>
+
     </div>
   );
 }

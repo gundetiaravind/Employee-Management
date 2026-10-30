@@ -7,6 +7,8 @@ import Register from "../../auth/Register/Register";
 import CompanyRegistration from "../../company/CompanyRegistration/CompanyRegistration";
 import EmployeeRegistration from "../../auth/EmployeeRegistration/EmployeeRegistration";
 
+import PlatformManagerDashboard from "../../pages/platform-manager/PlatformManagerDashboard";
+
 import OwnerDashboard from "../../pages/owner/OwnerDashboard";
 import OwnerHome from "../../pages/owner/OwnerHome";
 import ManageAdmins from "../../pages/owner/ManageAdmins";
@@ -31,12 +33,21 @@ function DemoDashboard({ role }) {
   };
 
   return (
-    <div style={{ padding: "40px", background: "var(--bg)", minHeight: "100vh" }}>
+    <div
+      style={{
+        padding: "40px",
+        background: "var(--bg)",
+        minHeight: "100vh",
+        color: "var(--text)",
+      }}
+    >
       <h1>
         {role === "ADMIN" ? "Admin Dashboard" : "Employee Dashboard"}
       </h1>
+
       <p>Welcome, {user.name}!</p>
       <p>{user.email}</p>
+
       <button onClick={handleLogout}>Logout</button>
     </div>
   );
@@ -49,8 +60,20 @@ export default function AppRoutes() {
       <Route path="/" element={<PublicLayout />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/register/company" element={<CompanyRegistration />} />
-      <Route path="/register/employee" element={<EmployeeRegistration />} />
+      <Route
+        path="/register/company"
+        element={<CompanyRegistration />}
+      />
+      <Route
+        path="/register/employee"
+        element={<EmployeeRegistration />}
+      />
+
+      {/* Platform Manager */}
+      <Route
+        path="/platform-manager/dashboard"
+        element={<PlatformManagerDashboard />}
+      />
 
       {/* Owner dashboard */}
       <Route path="/owner" element={<OwnerDashboard />}>

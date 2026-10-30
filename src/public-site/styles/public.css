@@ -461,3 +461,335 @@ body {
   .contact-card h2 { font-size: 27px; }
   .footer-content { flex-direction: column; align-items: flex-start; }
 }
+
+.desktop-platform-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.desktop-platform-link:hover {
+  color: var(--primary-dark, var(--primary));
+}
+
+.mobile-platform-link {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .desktop-platform-link {
+    display: none;
+  }
+
+  .mobile-platform-link {
+    display: block;
+    padding: 12px 16px;
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+}
+.platform-manager-link {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.platform-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.platform-modal {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  background: var(--card-bg, #fff);
+  color: var(--text, #222);
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+}
+
+.platform-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.platform-modal-icon {
+  width: 55px;
+  height: 55px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #eeeaff;
+  color: #6c4ce4;
+  margin-bottom: 18px;
+}
+
+.platform-modal h2 {
+  margin: 0 0 8px;
+}
+
+.platform-modal p {
+  margin-bottom: 24px;
+  opacity: 0.7;
+}
+
+.platform-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.platform-modal input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.platform-login-submit {
+  margin-top: 12px;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  background: #6c4ce4;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* =====================================
+   PLATFORM MANAGER SECTION
+===================================== */
+
+.platform-manager-section {
+  background:
+    radial-gradient(
+      circle at 85% 15%,
+      var(--soft-primary),
+      transparent 35%
+    ),
+    var(--bg);
+}
+
+.platform-manager-card {
+  display: grid;
+  grid-template-columns: 1fr 0.9fr;
+  align-items: center;
+  gap: 65px;
+  padding: 55px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.platform-manager-content {
+  max-width: 540px;
+}
+
+.platform-manager-content h2 {
+  font-family: Manrope, sans-serif;
+  font-size: clamp(30px, 4vw, 43px);
+  line-height: 1.2;
+  letter-spacing: -1.5px;
+  margin: 18px 0;
+  color: var(--text);
+}
+
+.platform-manager-content p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.9;
+  margin-bottom: 30px;
+}
+
+.platform-manager-content .primary-button {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.platform-manager-visual {
+  padding: 30px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.platform-manager-icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--soft-primary);
+  color: var(--primary);
+  margin-bottom: 20px;
+}
+
+.platform-manager-visual h3 {
+  color: var(--text);
+  font-family: Manrope, sans-serif;
+  font-size: 21px;
+  margin-bottom: 22px;
+}
+
+.platform-manager-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.platform-manager-stats > div {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  column-gap: 13px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.platform-manager-stats > div:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+}
+
+.platform-manager-stats svg {
+  grid-row: span 2;
+  width: 23px;
+  height: 23px;
+  color: var(--primary);
+}
+
+.platform-manager-stats strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.platform-manager-stats span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Responsive layout */
+
+@media (max-width: 900px) {
+  .platform-manager-card {
+    grid-template-columns: 1fr;
+    gap: 35px;
+    padding: 38px;
+  }
+}
+
+@media (max-width: 680px) {
+  .platform-manager-card {
+    padding: 25px;
+    border-radius: 17px;
+  }
+
+  .platform-manager-content h2 {
+    font-size: 31px;
+  }
+
+  .platform-manager-visual {
+    padding: 20px;
+  }
+}
+
+/* =====================================
+   PLATFORM MANAGER LOGIN POPUP
+===================================== */
+
+.platform-modal {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.platform-modal-close {
+  color: var(--muted);
+}
+
+.platform-modal-icon {
+  background: var(--soft-primary);
+  color: var(--primary);
+}
+
+.platform-modal h2 {
+  color: var(--text);
+}
+
+.platform-modal p {
+  color: var(--muted);
+}
+
+.platform-modal label {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.platform-modal input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font: inherit;
+}
+
+.platform-modal input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.platform-login-submit {
+  background: var(--primary);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.platform-login-submit:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+.demo-credentials-button {
+  margin-top: 8px;
+  padding: 11px;
+  border: 1px dashed var(--primary);
+  border-radius: 9px;
+  background: var(--soft-primary);
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.demo-credentials-button:hover {
+  background: var(--primary);
+  color: #fff;
+}

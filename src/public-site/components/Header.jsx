@@ -12,6 +12,7 @@ export default function Header() {
     ["Home", "home"],
     ["About", "about"],
     ["Features", "features"],
+    ["Platform Manager", "platform-manager"],
     ["Contact", "contact"],
   ];
 
@@ -21,8 +22,12 @@ export default function Header() {
     <header className="site-header">
       <div className="nav-container">
         <a href="#home" className="brand" onClick={closeMenu}>
-          <span className="brand-icon"><Users size={23} /></span>
-          <span>Org<span className="brand-highlight">Connect</span></span>
+          <span className="brand-icon">
+            <Users size={23} />
+          </span>
+          <span>
+            Org<span className="brand-highlight">Connect</span>
+          </span>
         </a>
 
         <nav className={`nav-links ${menuOpen ? "open" : ""}`}>
@@ -31,9 +36,17 @@ export default function Header() {
               {label}
             </a>
           ))}
+
           <div className="mobile-auth">
-            <Link to="/login" onClick={closeMenu}>Login</Link>
-            <Link to="/register" className="nav-register" onClick={closeMenu}>
+            <Link to="/login" onClick={closeMenu}>
+              Login
+            </Link>
+
+            <Link
+              to="/register"
+              className="nav-register"
+              onClick={closeMenu}
+            >
               Get Started
             </Link>
           </div>
@@ -49,8 +62,14 @@ export default function Header() {
             {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
           </button>
 
-          <Link to="/login" className="nav-login">Login</Link>
-          <Link to="/register" className="nav-register desktop-register">
+          <Link to="/login" className="nav-login">
+            Login
+          </Link>
+
+          <Link
+            to="/register"
+            className="nav-register desktop-register"
+          >
             Get Started
           </Link>
 
