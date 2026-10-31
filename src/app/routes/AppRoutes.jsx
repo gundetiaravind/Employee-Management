@@ -1,5 +1,5 @@
 
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import PublicLayout from "../../public-site/layouts/PublicLayout";
 import Login from "../../auth/Login/Login";
@@ -16,66 +16,52 @@ import ManageEmployees from "../../pages/owner/ManageEmployees";
 import CompanySettings from "../../pages/owner/CompanySettings";
 import OwnerProfile from "../../pages/owner/OwnerProfile";
 
-function DemoDashboard({ role }) {
-  const navigate = useNavigate();
+import AdminDashboard from "../../pages/admin/AdminDashboard";
+import AdminHome from "../../pages/admin/AdminHome";
+import AdminManageEmployees from "../../pages/admin/ManageEmployees";
+import Departments from "../../pages/admin/Departments";
+import Attendance from "../../pages/admin/Attendance";
+import LeaveManagement from "../../pages/admin/LeaveManagement";
+import Payroll from "../../pages/admin/Payroll";
+import Reports from "../../pages/admin/Reports";
+import WorkAllocation from "../../pages/admin/WorkAllocation";
+import AdminProfile from "../../pages/admin/AdminProfile";
 
-  const user = JSON.parse(
-    sessionStorage.getItem("OrgConnect-demo-user") || "null"
-  );
+import EmployeeDashboard, {
+  EmployeeHome,
+} from "../../pages/employee/EmployeeDashboard";
 
-  if (!user || user.role !== role) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const handleLogout = () => {
-    sessionStorage.removeItem("OrgConnect-demo-user");
-    navigate("/login", { replace: true });
-  };
-
-  return (
-    <div
-      style={{
-        padding: "40px",
-        background: "var(--bg)",
-        minHeight: "100vh",
-        color: "var(--text)",
-      }}
-    >
-      <h1>
-        {role === "ADMIN" ? "Admin Dashboard" : "Employee Dashboard"}
-      </h1>
-
-      <p>Welcome, {user.name}!</p>
-      <p>{user.email}</p>
-
-      <button onClick={handleLogout}>Logout</button>
-    </div>
-  );
-}
+import MyProfile from "../../pages/employee/MyProfile";
+import EmployeeLeaveManagement from "../../pages/employee/LeaveManagement";
+import MyAttendance from "../../pages/employee/MyAttendance";
+import MyPayroll from "../../pages/employee/MyPayroll";
+import MyWork from "../../pages/employee/MyWork";
 
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Public pages */}
+      {/* PUBLIC PAGES */}
       <Route path="/" element={<PublicLayout />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+
       <Route
         path="/register/company"
         element={<CompanyRegistration />}
       />
+
       <Route
         path="/register/employee"
         element={<EmployeeRegistration />}
       />
 
-      {/* Platform Manager */}
+      {/* PLATFORM MANAGER */}
       <Route
         path="/platform-manager/dashboard"
         element={<PlatformManagerDashboard />}
       />
 
-      {/* Owner dashboard */}
+      {/* OWNER WORKSPACE */}
       <Route path="/owner" element={<OwnerDashboard />}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<OwnerHome />} />
@@ -85,19 +71,32 @@ export default function AppRoutes() {
         <Route path="profile" element={<OwnerProfile />} />
       </Route>
 
-      {/* Admin dashboard */}
-      <Route
-        path="/admin/dashboard"
-        element={<DemoDashboard role="ADMIN" />}
-      />
+      {/* ADMIN WORKSPACE */}
+      <Route path="/admin" element={<AdminDashboard />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminHome />} />
+        <Route path="employees" element={<AdminManageEmployees />} />
+        <Route path="departments" element={<Departments />} />
+        <Route path="attendance" element={<Attendance />} />
+        <Route path="leaves" element={<LeaveManagement />} />
+        <Route path="payroll" element={<Payroll />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="profile" element={<AdminProfile />} />
+        <Route path="work-allocation" element={<WorkAllocation />} />
+      </Route>
 
-      {/* Employee dashboard */}
-      <Route
-        path="/employee/dashboard"
-        element={<DemoDashboard role="EMPLOYEE" />}
-      />
+      {/* EMPLOYEE WORKSPACE */}
+      <Route path="/employee" element={<EmployeeDashboard />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<EmployeeHome />} />
+        <Route path="profile" element={<MyProfile />} />
+        <Route path="attendance" element={<MyAttendance />} />
+        <Route path="leaves" element={<EmployeeLeaveManagement />} />
+        <Route path="payroll" element={<MyPayroll />} />
+        <Route path="work" element={<MyWork />} />
+      </Route>
 
-      {/* Fallback */}
+      {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

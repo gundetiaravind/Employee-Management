@@ -1,0 +1,379 @@
+.employee-profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--emp-text);
+}
+
+.employee-profile-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.employee-profile-heading h1 {
+  margin: 0;
+  color: var(--emp-text);
+  font-size: 28px;
+  font-weight: 750;
+}
+
+.employee-profile-heading p {
+  margin: 7px 0 0;
+  color: var(--emp-muted);
+  font-size: 13px;
+}
+
+.employee-profile-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.employee-profile-edit-btn,
+.employee-profile-save-btn,
+.employee-profile-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.employee-profile-edit-btn,
+.employee-profile-save-btn {
+  color: #ffffff;
+  background: #6254d9;
+  border: 1px solid #6254d9;
+}
+
+.employee-profile-edit-btn:hover,
+.employee-profile-save-btn:hover {
+  background: #5143c3;
+  border-color: #5143c3;
+}
+
+.employee-profile-cancel-btn {
+  color: var(--emp-text);
+  background: var(--emp-card);
+  border: 1px solid var(--emp-border);
+}
+
+.employee-profile-cancel-btn:hover {
+  background: var(--emp-hover);
+}
+
+.employee-profile-card {
+  padding: 23px;
+  background: var(--emp-card);
+  border: 1px solid var(--emp-border);
+  border-radius: 13px;
+}
+
+.employee-profile-overview {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.employee-profile-avatar {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6254d9, #8978ed);
+  font-size: 24px;
+  font-weight: 750;
+}
+
+.employee-profile-avatar-status {
+  position: absolute;
+  right: 3px;
+  bottom: 4px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--emp-card);
+  border-radius: 50%;
+  background: #16a36b;
+}
+
+.employee-profile-overview-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.employee-profile-overview-info h2 {
+  margin: 0;
+  color: var(--emp-text);
+  font-size: 20px;
+  font-weight: 750;
+}
+
+.employee-profile-overview-info p {
+  margin: 5px 0 9px;
+  color: var(--emp-muted);
+  font-size: 13px;
+}
+
+.employee-profile-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--emp-muted);
+  font-size: 12px;
+}
+
+.employee-profile-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 20px;
+  color: #16845c;
+  background: rgba(22, 163, 107, 0.1);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.employee-profile-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a36b;
+}
+
+.employee-profile-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 23px;
+}
+
+.employee-profile-section-icon {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #6254d9;
+  background: rgba(98, 84, 217, 0.12);
+  border-radius: 10px;
+}
+
+.employee-profile-section-heading h2 {
+  margin: 0;
+  color: var(--emp-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.employee-profile-section-heading p {
+  margin: 5px 0 0;
+  color: var(--emp-muted);
+  font-size: 12px;
+}
+
+.employee-profile-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 19px 22px;
+}
+
+.employee-profile-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.employee-profile-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.employee-profile-field label {
+  color: var(--emp-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.employee-profile-required {
+  color: #dc4545;
+}
+
+.employee-profile-input-wrap {
+  position: relative;
+}
+
+.employee-profile-input-wrap > svg {
+  position: absolute;
+  top: 50%;
+  left: 13px;
+  color: var(--emp-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.employee-profile-field input {
+  width: 100%;
+  min-width: 0;
+  height: 43px;
+  padding: 0 13px;
+  border: 1px solid var(--emp-border);
+  border-radius: 8px;
+  outline: none;
+  background: var(--emp-input);
+  color: var(--emp-text);
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.employee-profile-input-wrap input {
+  padding-left: 40px;
+}
+
+.employee-profile-field input:focus {
+  border-color: #6254d9;
+  box-shadow: 0 0 0 3px rgba(98, 84, 217, 0.1);
+}
+
+.employee-profile-field input:read-only {
+  background: var(--emp-hover);
+  color: var(--emp-muted);
+  cursor: default;
+}
+
+.employee-profile-readonly {
+  min-height: 43px;
+  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--emp-border);
+  border-radius: 8px;
+  background: var(--emp-hover);
+  color: var(--emp-muted);
+  font-size: 13px;
+}
+
+.employee-profile-readonly svg {
+  flex-shrink: 0;
+  color: var(--emp-muted);
+}
+
+.employee-profile-readonly-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 12px 13px;
+  border-radius: 8px;
+  background: var(--emp-hover);
+  color: var(--emp-muted);
+  font-size: 11px;
+}
+
+.employee-profile-readonly-note svg {
+  flex-shrink: 0;
+  color: #15966a;
+}
+
+.employee-profile-bottom-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-bottom: 10px;
+}
+
+.employee-profile-alert {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.employee-profile-alert.success {
+  color: #16845c;
+  background: rgba(22, 163, 107, 0.1);
+  border: 1px solid rgba(22, 163, 107, 0.2);
+}
+
+.employee-profile-alert.error {
+  color: #d33d3d;
+  background: rgba(211, 61, 61, 0.09);
+  border: 1px solid rgba(211, 61, 61, 0.2);
+}
+
+@media (max-width: 700px) {
+  .employee-profile-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .employee-profile-heading-actions {
+    width: 100%;
+  }
+
+  .employee-profile-heading-actions button {
+    flex: 1;
+  }
+
+  .employee-profile-card {
+    padding: 18px;
+  }
+
+  .employee-profile-overview {
+    flex-wrap: wrap;
+  }
+
+  .employee-profile-status {
+    margin-left: 94px;
+  }
+
+  .employee-profile-fields {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .employee-profile-field.full-width {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .employee-profile-overview {
+    align-items: flex-start;
+  }
+
+  .employee-profile-avatar {
+    width: 62px;
+    height: 62px;
+    font-size: 20px;
+  }
+
+  .employee-profile-overview-info h2 {
+    font-size: 17px;
+  }
+
+  .employee-profile-status {
+    margin-left: 0;
+  }
+
+  .employee-profile-bottom-actions button {
+    flex: 1;
+  }
+}
