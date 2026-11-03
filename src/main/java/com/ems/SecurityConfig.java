@@ -1,3 +1,4 @@
+
 package com.ems;
 
 import org.springframework.context.annotation.Bean;
@@ -15,9 +16,20 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
+
+                // Allow project management endpoints
                 .requestMatchers("/api/projects/**").permitAll()
+
+                // Allow employee endpoints
                 .requestMatchers("/api/employees/**").permitAll()
+
+                // Allow employee-project assignment endpoints
                 .requestMatchers("/api/employee-projects/**").permitAll()
+
+                // Allow Spring Boot error handling
+                .requestMatchers("/error").permitAll()
+
+                // Require authentication for all other endpoints
                 .anyRequest().authenticated()
             );
 
