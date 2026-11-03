@@ -1,12 +1,19 @@
+
 package com.ems.project.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
+import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.ems.project.dto.AssignProjectRequest;
+import com.ems.project.dto.EmployeeProjectResponse;
 import com.ems.project.entity.EmployeeProject;
+import com.ems.project.mapper.EmployeeProjectMapper;
 import com.ems.project.service.EmployeeProjectService;
 
 @RestController
@@ -21,23 +28,24 @@ public class EmployeeProjectController {
     }
 
     // Assign employee to a project
-    @PostMapping("/employees/{employeeId}/projects/{projectId}")
-    public ResponseEntity<EmployeeProject> assignEmployee(
-            @PathVariable Long employeeId,
-            @PathVariable Long projectId,
+    @PostMapping("/employees/projects")
+    public ResponseEntity<EmployeeProjectResponse> assignEmployee(
+            @Valid @RequestBody AssignProjectRequest request,
             @RequestParam String tenantId) {
 
         EmployeeProject assignment =
                 assignmentService.assignEmployeeToProject(
-                        employeeId, projectId, tenantId);
+                        request.getEmployeeId(),
+                        request.getProjectId(),
+                        tenantId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(assignment);
+                .body(EmployeeProjectMapper.toResponse(assignment));
     }
 
     // Change an employee's project
     @PutMapping("/employee-projects/{assignmentId}")
-    public ResponseEntity<EmployeeProject> changeAssignment(
+    public ResponseEntity<EmployeeProjectResponse> changeAssignment(
             @PathVariable Long assignmentId,
             @RequestParam Long newProjectId,
             @RequestParam String tenantId) {
@@ -46,12 +54,13 @@ public class EmployeeProjectController {
                 assignmentService.changeProjectAssignment(
                         assignmentId, newProjectId, tenantId);
 
-        return ResponseEntity.ok(assignment);
+        return ResponseEntity.ok(
+                EmployeeProjectMapper.toResponse(assignment));
     }
 
     // Close an assignment
     @PatchMapping("/employee-projects/{assignmentId}/close")
-    public ResponseEntity<EmployeeProject> closeAssignment(
+    public ResponseEntity<EmployeeProjectResponse> closeAssignment(
             @PathVariable Long assignmentId,
             @RequestParam String tenantId) {
 
@@ -59,28 +68,37 @@ public class EmployeeProjectController {
                 assignmentService.closeProjectAssignment(
                         assignmentId, tenantId);
 
-        return ResponseEntity.ok(assignment);
+        return ResponseEntity.ok(
+                EmployeeProjectMapper.toResponse(assignment));
     }
 
     // View current assignments
     @GetMapping("/employees/{employeeId}/projects/current")
-    public ResponseEntity<List<EmployeeProject>> getCurrentAssignments(
+    public ResponseEntity<List<EmployeeProjectResponse>> getCurrentAssignments(
             @PathVariable Long employeeId,
             @RequestParam String tenantId) {
 
-        return ResponseEntity.ok(
-                assignmentService.getCurrentAssignments(
-                        employeeId, tenantId));
+        List<EmployeeProjectResponse> response =
+                assignmentService.getCurrentAssignments(employeeId, tenantId)
+                        .stream()
+                        .map(EmployeeProjectMapper::toResponse)
+                        .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 
-    // View previous and current assignment history
+    // View assignment history
     @GetMapping("/employees/{employeeId}/projects/history")
-    public ResponseEntity<List<EmployeeProject>> getAssignmentHistory(
+    public ResponseEntity<List<EmployeeProjectResponse>> getAssignmentHistory(
             @PathVariable Long employeeId,
             @RequestParam String tenantId) {
 
-        return ResponseEntity.ok(
-                assignmentService.getAssignmentHistory(
-                        employeeId, tenantId));
+        List<EmployeeProjectResponse> response =
+                assignmentService.getAssignmentHistory(employeeId, tenantId)
+                        .stream()
+                        .map(EmployeeProjectMapper::toResponse)
+                        .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 }

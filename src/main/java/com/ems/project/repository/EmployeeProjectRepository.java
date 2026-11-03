@@ -1,3 +1,4 @@
+
 package com.ems.project.repository;
 
 import java.util.List;
@@ -19,4 +20,11 @@ public interface EmployeeProjectRepository
 
     List<EmployeeProject> findByEmployeeIdAndTenantIdAndAssignmentStatus(
             Long employeeId, String tenantId, String assignmentStatus);
+
+    boolean existsByEmployeeIdAndProjectIdAndTenantIdAndAssignmentStatus(
+            Long employeeId,
+            Long projectId,
+            String tenantId,
+            String assignmentStatus
+    );
 }

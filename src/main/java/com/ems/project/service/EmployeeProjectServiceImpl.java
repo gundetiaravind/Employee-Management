@@ -1,3 +1,4 @@
+
 package com.ems.project.service;
 
 import java.time.LocalDate;
@@ -25,13 +26,26 @@ public class EmployeeProjectServiceImpl
         this.projectRepository = projectRepository;
     }
 
+    // Assign employee to a project
     @Override
     public EmployeeProject assignEmployeeToProject(
             Long employeeId, Long projectId, String tenantId) {
 
+        validateTenantId(tenantId);
+
         projectRepository.findByIdAndTenantId(projectId, tenantId)
                 .orElseThrow(() ->
                         new RuntimeException("Project not found"));
+
+        boolean alreadyAssigned =
+                assignmentRepository
+                        .existsByEmployeeIdAndProjectIdAndTenantIdAndAssignmentStatus(
+                                employeeId, projectId, tenantId, "ACTIVE");
+
+        if (alreadyAssigned) {
+            throw new RuntimeException(
+                    "Employee is already assigned to this project");
+        }
 
         EmployeeProject assignment = new EmployeeProject();
 
@@ -44,10 +58,13 @@ public class EmployeeProjectServiceImpl
         return assignmentRepository.save(assignment);
     }
 
+    // Change employee project
     @Override
     @Transactional
     public EmployeeProject changeProjectAssignment(
             Long assignmentId, Long newProjectId, String tenantId) {
+
+        validateTenantId(tenantId);
 
         EmployeeProject oldAssignment =
                 getAssignmentById(assignmentId, tenantId);
@@ -58,6 +75,11 @@ public class EmployeeProjectServiceImpl
 
         if (!"ACTIVE".equals(oldAssignment.getAssignmentStatus())) {
             throw new RuntimeException("Assignment is not active");
+        }
+
+        if (oldAssignment.getProjectId().equals(newProjectId)) {
+            throw new RuntimeException(
+                    "Employee is already assigned to this project");
         }
 
         oldAssignment.setEndDate(LocalDate.now());
@@ -76,9 +98,12 @@ public class EmployeeProjectServiceImpl
         return assignmentRepository.save(newAssignment);
     }
 
+    // Close project assignment
     @Override
     public EmployeeProject closeProjectAssignment(
             Long assignmentId, String tenantId) {
+
+        validateTenantId(tenantId);
 
         EmployeeProject assignment =
                 getAssignmentById(assignmentId, tenantId);
@@ -93,23 +118,38 @@ public class EmployeeProjectServiceImpl
         return assignmentRepository.save(assignment);
     }
 
+    // View current assignments
     @Override
     public List<EmployeeProject> getCurrentAssignments(
             Long employeeId, String tenantId) {
+
+        validateTenantId(tenantId);
 
         return assignmentRepository
                 .findByEmployeeIdAndTenantIdAndAssignmentStatus(
                         employeeId, tenantId, "ACTIVE");
     }
 
+    // View assignment history
     @Override
     public List<EmployeeProject> getAssignmentHistory(
             Long employeeId, String tenantId) {
+
+        validateTenantId(tenantId);
 
         return assignmentRepository
                 .findByEmployeeIdAndTenantId(employeeId, tenantId);
     }
 
+    // Validate tenant ID
+    private void validateTenantId(String tenantId) {
+
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new RuntimeException("Tenant ID is required");
+        }
+    }
+
+    // Find assignment within the correct company
     private EmployeeProject getAssignmentById(
             Long assignmentId, String tenantId) {
 

@@ -17,9 +17,11 @@ public class ProjectServiceImpl implements ProjectService {
         this.projectRepository = projectRepository;
     }
 
+    // CREATE PROJECT
     @Override
     public Project createProject(Project project, String tenantId) {
 
+        validateTenantId(tenantId);
         validateProject(project);
 
         // Check duplicate project code within the same company
@@ -31,18 +33,25 @@ public class ProjectServiceImpl implements ProjectService {
 
         project.setId(null);
         project.setTenantId(tenantId);
+        project.setProjectStatus("ACTIVE");
 
         return projectRepository.save(project);
     }
 
+    // GET ALL PROJECTS
     @Override
     public List<Project> getAllProjects(String tenantId) {
+
+        validateTenantId(tenantId);
 
         return projectRepository.findByTenantId(tenantId);
     }
 
+    // GET PROJECT BY ID
     @Override
     public Project getProjectById(Long projectId, String tenantId) {
+
+        validateTenantId(tenantId);
 
         return projectRepository
                 .findByIdAndTenantId(projectId, tenantId)
@@ -50,15 +59,18 @@ public class ProjectServiceImpl implements ProjectService {
                         new RuntimeException("Project not found"));
     }
 
+    // UPDATE PROJECT
     @Override
     public Project updateProject(
             Long projectId, Project updatedProject, String tenantId) {
+
+        validateTenantId(tenantId);
 
         Project existingProject = getProjectById(projectId, tenantId);
 
         validateProject(updatedProject);
 
-        // Check duplicate code, excluding the current project
+        // Check duplicate project code, excluding current project
         Project duplicateProject = projectRepository
                 .findByProjectCodeAndTenantId(
                         updatedProject.getProjectCode(), tenantId)
@@ -82,11 +94,23 @@ public class ProjectServiceImpl implements ProjectService {
         existingProject.setReportingManagerEmail(
                 updatedProject.getReportingManagerEmail());
 
-        existingProject.setProjectStatus(updatedProject.getProjectStatus());
+        // Preserve existing status; fix NULL status to ACTIVE
+        if (updatedProject.getProjectStatus() != null &&
+                !updatedProject.getProjectStatus().trim().isEmpty()) {
+
+            existingProject.setProjectStatus(
+                    updatedProject.getProjectStatus());
+
+        } else if (existingProject.getProjectStatus() == null ||
+                existingProject.getProjectStatus().trim().isEmpty()) {
+
+            existingProject.setProjectStatus("ACTIVE");
+        }
 
         return projectRepository.save(existingProject);
     }
 
+    // DELETE PROJECT
     @Override
     public void deleteProject(Long projectId, String tenantId) {
 
@@ -95,8 +119,20 @@ public class ProjectServiceImpl implements ProjectService {
         projectRepository.delete(project);
     }
 
-    // Project validation
+    // VALIDATE TENANT ID
+    private void validateTenantId(String tenantId) {
+
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new RuntimeException("Tenant ID is required");
+        }
+    }
+
+    // PROJECT VALIDATION
     private void validateProject(Project project) {
+
+        if (project == null) {
+            throw new RuntimeException("Project details are required");
+        }
 
         if (project.getProjectCode() == null ||
                 project.getProjectCode().trim().isEmpty()) {
@@ -117,12 +153,10 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
         if (project.getStartDate() == null) {
-
             throw new RuntimeException("Project start date is required");
         }
 
         if (project.getEndDate() == null) {
-
             throw new RuntimeException("Project end date is required");
         }
 
