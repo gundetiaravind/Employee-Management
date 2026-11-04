@@ -1,4 +1,3 @@
-
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -61,12 +60,7 @@
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
-        <!-- Flyway MySQL Support -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-mysql</artifactId>
-        </dependency>
-
+       
         <!-- MySQL Driver -->
         <dependency>
             <groupId>com.mysql</groupId>
@@ -117,7 +111,11 @@
     <groupId>tools.jackson.core</groupId>
     <artifactId>jackson-databind</artifactId>
 </dependency>
-
+<!-- Email OTP -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-mail</artifactId>
+</dependency>
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -6,5 +6,4 @@ public enum Role {
   COMPANY_OWNER,
   ADMIN,
   EMPLOYEE
-
 }

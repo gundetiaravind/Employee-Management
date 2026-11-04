@@ -2,11 +2,12 @@
 package com.ems.security.jwt;
 
 import com.ems.user.service.CustomUserDetailsService;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,79 +19,77 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-  private final JwtService jwtService;
-  private final CustomUserDetailsService userDetailsService;
+    private final JwtService jwtService;
+    private final CustomUserDetailsService userDetailsService;
 
-  public JwtAuthenticationFilter(
-      JwtService jwtService,
-      CustomUserDetailsService userDetailsService) {
-
-    this.jwtService = jwtService;
-    this.userDetailsService = userDetailsService;
-  }
-
-  @Override
-  protected void doFilterInternal(
-      HttpServletRequest request,
-      HttpServletResponse response,
-      FilterChain filterChain)
-      throws ServletException, IOException {
-
-    final String authorizationHeader = request.getHeader("Authorization");
-
-    final String jwt;
-    final String userEmail;
-
-    // Check whether Authorization header contains Bearer token
-    if (authorizationHeader == null ||
-        !authorizationHeader.startsWith("Bearer ")) {
-
-      filterChain.doFilter(request, response);
-      return;
+    public JwtAuthenticationFilter(
+            JwtService jwtService,
+            CustomUserDetailsService userDetailsService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
     }
 
-    // Extract JWT token
-    jwt = authorizationHeader.substring(7);
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
 
-    try {
+        final String authorizationHeader =
+                request.getHeader("Authorization");
 
-      // Extract email from JWT
-      userEmail = jwtService.extractUsername(jwt);
-
-      // Authenticate only if user is not already authenticated
-      if (userEmail != null &&
-          SecurityContextHolder.getContext().getAuthentication() == null) {
-
-        // Load user details from database
-        UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
-
-        // Validate JWT
-        if (jwtService.isTokenValid(jwt, userDetails)) {
-
-          UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-              userDetails,
-              null,
-              userDetails.getAuthorities());
-
-          authenticationToken.setDetails(
-              new WebAuthenticationDetailsSource()
-                  .buildDetails(request));
-
-          // Set authenticated user in SecurityContext
-          SecurityContextHolder.getContext()
-              .setAuthentication(authenticationToken);
+        if (authorizationHeader == null ||
+                !authorizationHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
         }
-      }
 
-    } catch (Exception exception) {
+        String jwt = authorizationHeader.substring(7).trim();
 
-      // Clear security context for invalid tokens
-      SecurityContextHolder.clearContext();
+        try {
+            String userEmail = jwtService.extractUsername(jwt);
+
+            if (userEmail != null &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                UserDetails userDetails =
+                        userDetailsService.loadUserByUsername(userEmail);
+
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+
+                    UsernamePasswordAuthenticationToken authenticationToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities());
+
+                    authenticationToken.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request));
+
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authenticationToken);
+
+                    log.info("JWT authenticated successfully for: {}", userEmail);
+                } else {
+                    log.warn("JWT validation failed for: {}", userEmail);
+                }
+            }
+
+        } catch (Exception exception) {
+            SecurityContextHolder.clearContext();
+
+            log.error(
+                    "JWT authentication failed for request {}. Reason: {}",
+                    request.getRequestURI(),
+                    exception.getMessage(),
+                    exception);
+        }
+
+        filterChain.doFilter(request, response);
     }
-
-    // Continue request processing
-    filterChain.doFilter(request, response);
-  }
 }

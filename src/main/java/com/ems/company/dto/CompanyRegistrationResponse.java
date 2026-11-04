@@ -8,13 +8,12 @@ import lombok.Getter;
 @Builder
 public class CompanyRegistrationResponse {
 
-  private Long companyId;
-
-  private String companyName;
-
-  private String ownerEmail;
-
-  private String companyStatus;
-
-  private String message;
+    private Long companyId;
+    private String companyName;
+    private String ownerName;
+    private String ownerEmail;
+    private String ownerMobileNumber;
+    private String logoPath;
+    private String companyStatus;
+    private String message;
 }

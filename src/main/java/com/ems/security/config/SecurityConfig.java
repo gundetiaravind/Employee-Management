@@ -1,6 +1,8 @@
 
 package com.ems.security.config;
 
+import java.util.List;
+
 import com.ems.security.handler.CustomAccessDeniedHandler;
 import com.ems.security.handler.CustomAuthenticationEntryPoint;
 import com.ems.security.jwt.JwtAuthenticationFilter;
@@ -9,6 +11,7 @@ import com.ems.user.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -19,99 +22,160 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-  private final CustomUserDetailsService customUserDetailsService;
-  private final PasswordEncoder passwordEncoder;
-  private final JwtAuthenticationFilter jwtAuthenticationFilter;
-  private final CustomAuthenticationEntryPoint authenticationEntryPoint;
-  private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
-  public SecurityConfig(
-      CustomUserDetailsService customUserDetailsService,
-      PasswordEncoder passwordEncoder,
-      JwtAuthenticationFilter jwtAuthenticationFilter,
-      CustomAuthenticationEntryPoint authenticationEntryPoint,
-      CustomAccessDeniedHandler accessDeniedHandler) {
+    public SecurityConfig(
+            CustomUserDetailsService customUserDetailsService,
+            PasswordEncoder passwordEncoder,
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CustomAuthenticationEntryPoint authenticationEntryPoint,
+            CustomAccessDeniedHandler accessDeniedHandler) {
 
-    this.customUserDetailsService = customUserDetailsService;
-    this.passwordEncoder = passwordEncoder;
-    this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    this.authenticationEntryPoint = authenticationEntryPoint;
-    this.accessDeniedHandler = accessDeniedHandler;
-  }
+        this.customUserDetailsService = customUserDetailsService;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
+    }
 
-  @Bean
-  public DaoAuthenticationProvider authenticationProvider() {
+    // CORS configuration
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
 
-    DaoAuthenticationProvider provider = new DaoAuthenticationProvider(customUserDetailsService);
+        CorsConfiguration configuration = new CorsConfiguration();
 
-    provider.setPasswordEncoder(passwordEncoder);
+        configuration.setAllowedOrigins(
+                List.of(
+                        "http://localhost:5173",
+                        "http://127.0.0.1:5173"
+                )
+        );
 
-    return provider;
-  }
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
 
-  @Bean
-  public AuthenticationManager authenticationManager(
-      AuthenticationConfiguration configuration) throws Exception {
+        configuration.setAllowedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Type",
+                        "Accept"
+                )
+        );
 
-    return configuration.getAuthenticationManager();
-  }
+        configuration.setExposedHeaders(
+                List.of("Authorization")
+        );
 
-  @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http)
-      throws Exception {
+        configuration.setAllowCredentials(true);
 
-    http
-        .csrf(csrf -> csrf.disable())
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
 
-        .authorizeHttpRequests(auth -> auth
+        source.registerCorsConfiguration("/**", configuration);
 
-            // Public endpoints
-            .requestMatchers(
-                "/api/auth/register",
-                "/api/auth/login",
-                "/api/auth/verify-email",
-                "/api/auth/forgot-password",
-                "/api/auth/reset-password")
-            .permitAll()
+        return source;
+    }
 
-            .requestMatchers("/actuator/health").permitAll()
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
 
-            // Platform Manager APIs
-            .requestMatchers("/api/platform/**")
-            .hasRole("PLATFORM_MANAGER")
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(customUserDetailsService);
 
-            // Company Owner APIs
-            .requestMatchers("/api/company-owner/**")
-            .hasRole("COMPANY_OWNER")
+        provider.setPasswordEncoder(passwordEncoder);
 
-            // Admin APIs
-            .requestMatchers("/api/admin/**")
-            .hasRole("ADMIN")
+        return provider;
+    }
 
-            // Employee APIs
-            .requestMatchers("/api/employee/**")
-            .hasRole("EMPLOYEE")
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration) throws Exception {
 
-            // All remaining APIs require authentication
-            .anyRequest().authenticated())
+        return configuration.getAuthenticationManager();
+    }
 
-        .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+            throws Exception {
 
-        .authenticationProvider(authenticationProvider())
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-        .exceptionHandling(exception -> exception
-            .authenticationEntryPoint(authenticationEntryPoint)
-            .accessDeniedHandler(accessDeniedHandler))
+            .csrf(csrf -> csrf.disable())
 
-        .addFilterBefore(
-            jwtAuthenticationFilter,
-            UsernamePasswordAuthenticationFilter.class);
+            .authorizeHttpRequests(auth -> auth
 
-    return http.build();
-  }
+                // Allow CORS preflight requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Public endpoints
+                .requestMatchers(
+                	    "/api/auth/register",
+                	    "/api/auth/login",
+                	    "/api/auth/verify-email",
+                	    "/api/auth/resend-verification",
+                	    "/api/auth/forgot-password",
+                	    "/api/auth/reset-password",
+                	    "/uploads/company-logos/**",
+                	    "/actuator/health"
+                	).permitAll()
+
+                // Platform Manager APIs
+                .requestMatchers("/api/platform/**")
+                .hasRole("PLATFORM_MANAGER")
+
+                // Company Owner APIs
+                .requestMatchers("/api/company-owner/**")
+                .hasRole("COMPANY_OWNER")
+
+                // Admin APIs
+                .requestMatchers("/api/admin/**")
+                .hasRole("ADMIN")
+
+                // Employee APIs
+                .requestMatchers("/api/employee/**")
+                .hasRole("EMPLOYEE")
+
+                // All remaining APIs require authentication
+                .anyRequest().authenticated()
+            )
+
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+
+            .authenticationProvider(authenticationProvider())
+
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler)
+            )
+
+            .addFilterBefore(
+                jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class
+            );
+
+        return http.build();
+    }
 }
