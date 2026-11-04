@@ -19,28 +19,41 @@ import java.util.Map;
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-  private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-  public CustomAuthenticationEntryPoint(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-  }
+    public CustomAuthenticationEntryPoint(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
-  @Override
-  public void commence(
-      HttpServletRequest request,
-      HttpServletResponse response,
-      AuthenticationException authException)
-      throws IOException, ServletException {
+    @Override
+    public void commence(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException authException)
+            throws IOException, ServletException {
 
-    response.setStatus(HttpStatus.UNAUTHORIZED.value());
-    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        // Temporary diagnostic logs
+        System.out.println("\n========== SECURITY 401 ==========");
+        System.out.println("Request URI    : " + request.getRequestURI());
+        System.out.println("Request Method : " + request.getMethod());
+        System.out.println("Request Origin : " + request.getHeader("Origin"));
+        System.out.println("Authorization  : "
+                + (request.getHeader("Authorization") == null
+                ? "Not provided"
+                : "Bearer token provided"));
+        System.out.println("Exception      : " + authException.getMessage());
+        System.out.println("==================================\n");
 
-    Map<String, Object> errorResponse = Map.of(
-        "status", 401,
-        "error", "Unauthorized",
-        "message", "Authentication required or token is invalid",
-        "path", request.getRequestURI());
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-    objectMapper.writeValue(response.getOutputStream(), errorResponse);
-  }
+        Map<String, Object> errorResponse = Map.of(
+                "status", 401,
+                "error", "Unauthorized",
+                "message", "Authentication required or token is invalid",
+                "path", request.getRequestURI()
+        );
+
+        objectMapper.writeValue(response.getOutputStream(), errorResponse);
+    }
 }

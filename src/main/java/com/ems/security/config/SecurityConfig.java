@@ -126,7 +126,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
 
                 // Allow CORS preflight requests
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            		.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            		.requestMatchers("/error").permitAll()
 
                 // Public endpoints
                 .requestMatchers(
