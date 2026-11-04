@@ -1,12 +1,20 @@
 
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
+import {
+  getAuth,
+  getCurrentUser,
+  getDashboardPath,
+  isAuthenticated,
+} from "../../services/authService";
 
 import PublicLayout from "../../public-site/layouts/PublicLayout";
 import Login from "../../auth/Login/Login";
 import Register from "../../auth/Register/Register";
 import CompanyRegistration from "../../company/CompanyRegistration/CompanyRegistration";
 import EmployeeRegistration from "../../auth/EmployeeRegistration/EmployeeRegistration";
-
+import EmailVerification from "../../auth/EmailVerification/EmailVerification";
 import PlatformManagerDashboard from "../../pages/platform-manager/PlatformManagerDashboard";
 
 import OwnerDashboard from "../../pages/owner/OwnerDashboard";
@@ -37,6 +45,73 @@ import MyAttendance from "../../pages/employee/MyAttendance";
 import MyPayroll from "../../pages/employee/MyPayroll";
 import MyWork from "../../pages/employee/MyWork";
 
+// Authentication and role protection
+function AuthGuard({ allowedRoles, children }) {
+  const [status, setStatus] = useState("checking");
+
+  useEffect(() => {
+    let active = true;
+
+    const verifyUser = async () => {
+      if (!isAuthenticated()) {
+        if (active) setStatus("unauthorized");
+        return;
+      }
+
+      try {
+        const user = await getCurrentUser();
+
+        if (!active) return;
+
+        const userRole = String(user.role || "")
+          .replace(/^ROLE_/, "")
+          .toUpperCase();
+
+        const permittedRoles = allowedRoles.map((role) =>
+          String(role).replace(/^ROLE_/, "").toUpperCase()
+        );
+
+        setStatus(
+          permittedRoles.includes(userRole)
+            ? "authorized"
+            : "unauthorized"
+        );
+      } catch {
+        if (active) {
+          setStatus("unauthorized");
+        }
+      }
+    };
+
+    verifyUser();
+
+    return () => {
+      active = false;
+    };
+  }, [allowedRoles]);
+
+  if (status === "checking") {
+    return <div>Verifying your account...</div>;
+  }
+
+  if (status === "unauthorized") {
+    const auth = getAuth();
+
+    return (
+      <Navigate
+        to={
+          auth?.accessToken
+            ? getDashboardPath(auth.role)
+            : "/login"
+        }
+        replace
+      />
+    );
+  }
+
+  return children;
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -54,15 +129,29 @@ export default function AppRoutes() {
         path="/register/employee"
         element={<EmployeeRegistration />}
       />
-
+<Route
+  path="/verify-email"
+  element={<EmailVerification />}
+/>
       {/* PLATFORM MANAGER */}
       <Route
         path="/platform-manager/dashboard"
-        element={<PlatformManagerDashboard />}
+        element={
+          <AuthGuard allowedRoles={["PLATFORM_MANAGER"]}>
+            <PlatformManagerDashboard />
+          </AuthGuard>
+        }
       />
 
       {/* OWNER WORKSPACE */}
-      <Route path="/owner" element={<OwnerDashboard />}>
+      <Route
+        path="/owner"
+        element={
+          <AuthGuard allowedRoles={["COMPANY_OWNER"]}>
+            <OwnerDashboard />
+          </AuthGuard>
+        }
+      >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<OwnerHome />} />
         <Route path="admins" element={<ManageAdmins />} />
@@ -72,7 +161,14 @@ export default function AppRoutes() {
       </Route>
 
       {/* ADMIN WORKSPACE */}
-      <Route path="/admin" element={<AdminDashboard />}>
+      <Route
+        path="/admin"
+        element={
+          <AuthGuard allowedRoles={["ADMIN"]}>
+            <AdminDashboard />
+          </AuthGuard>
+        }
+      >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminHome />} />
         <Route path="employees" element={<AdminManageEmployees />} />
@@ -86,7 +182,14 @@ export default function AppRoutes() {
       </Route>
 
       {/* EMPLOYEE WORKSPACE */}
-      <Route path="/employee" element={<EmployeeDashboard />}>
+      <Route
+        path="/employee"
+        element={
+          <AuthGuard allowedRoles={["EMPLOYEE"]}>
+            <EmployeeDashboard />
+          </AuthGuard>
+        }
+      >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<EmployeeHome />} />
         <Route path="profile" element={<MyProfile />} />

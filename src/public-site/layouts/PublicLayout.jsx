@@ -6,10 +6,10 @@ import { X, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Home from "../pages/Home";
+import { saveAuth } from "../../services/authService";
 import "../styles/public.css";
 
-const DEMO_EMAIL = "manager@orgconnect.com";
-const DEMO_PASSWORD = "Manager@123";
+const API_URL = "http://localhost:8080/api/auth";
 
 export default function PublicLayout() {
   const [loginOpen, setLoginOpen] = useState(false);
@@ -17,6 +17,7 @@ export default function PublicLayout() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -25,29 +26,64 @@ export default function PublicLayout() {
       setError("");
       setEmail("");
       setPassword("");
+      setShowPassword(false);
       setLoginOpen(true);
     };
 
     window.addEventListener("open-platform-manager-login", openLogin);
 
     return () => {
-      window.removeEventListener("open-platform-manager-login", openLogin);
+      window.removeEventListener(
+        "open-platform-manager-login",
+        openLogin
+      );
     };
   }, []);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    if (
-      email.trim().toLowerCase() === DEMO_EMAIL &&
-      password === DEMO_PASSWORD
-    ) {
-      sessionStorage.setItem("platformManagerDemoAuth", "true");
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || data.error || "Invalid email or password."
+        );
+      }
+
+      if (data.role !== "PLATFORM_MANAGER") {
+        throw new Error(
+          "Access denied. This account is not a Platform Manager."
+        );
+      }
+
+      // Use the same authentication storage as the existing login.
+      saveAuth(data);
+
       setLoginOpen(false);
+      setEmail("");
+      setPassword("");
+
       navigate("/platform-manager/dashboard");
-    } else {
-      setError("Invalid email or password. Please try again.");
+
+    } catch (err) {
+      setError(err.message || "Unable to login. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,7 +96,7 @@ export default function PublicLayout() {
       {loginOpen && (
         <div
           className="platform-modal-overlay"
-          onClick={() => setLoginOpen(false)}
+          onClick={() => !loading && setLoginOpen(false)}
         >
           <div
             className="platform-modal"
@@ -70,6 +106,7 @@ export default function PublicLayout() {
               type="button"
               className="platform-modal-close"
               onClick={() => setLoginOpen(false)}
+              disabled={loading}
               aria-label="Close login"
             >
               <X size={21} />
@@ -86,18 +123,23 @@ export default function PublicLayout() {
             </p>
 
             <form onSubmit={handleLogin}>
-              <label htmlFor="platform-email">Email Address</label>
+              <label htmlFor="platform-email">
+                Email Address
+              </label>
 
               <input
                 id="platform-email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter your registered email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
               />
 
-              <label htmlFor="platform-password">Password</label>
+              <label htmlFor="platform-password">
+                Password
+              </label>
 
               <div className="pm-password-field">
                 <input
@@ -107,14 +149,20 @@ export default function PublicLayout() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
 
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword ? "Hide password" : "Show password"
+                  }
+                  disabled={loading}
                 >
-                  {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+                  {showPassword
+                    ? <EyeOff size={19} />
+                    : <Eye size={19} />}
                 </button>
               </div>
 
@@ -123,28 +171,18 @@ export default function PublicLayout() {
                   {error}
                 </p>
               )}
-<button
-  type="button"
-  className="demo-credentials-button"
-  onClick={() => {
-    setEmail("manager@orgconnect.com");
-    setPassword("Manager@123");
-    setError("");
-  }}
->
-  Use Demo Credentials
-</button>
 
-<button
-  type="submit"
-  className="platform-login-submit"
->
-  Login
-</button>
+              <button
+                type="submit"
+                className="platform-login-submit"
+                disabled={loading}
+              >
+                {loading ? "Signing in..." : "Login"}
+              </button>
             </form>
 
             <p className="pm-security-note">
-              Demo Platform Manager access only.
+              Secure Platform Manager access.
             </p>
           </div>
         </div>

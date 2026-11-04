@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
@@ -14,6 +15,8 @@ import {
 
 import { useTheme } from "../../context/ThemeContext";
 import "./OwnerDashboard.css";
+
+const AUTH_KEY = "orgconnect-auth";
 
 const navigation = [
   {
@@ -46,16 +49,17 @@ const navigation = [
 export default function OwnerLayout() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+
   const [menuOpen, setMenuOpen] = useState(false);
 
   const user = JSON.parse(
-    sessionStorage.getItem("OrgConnect-demo-user") || "null"
+    sessionStorage.getItem(AUTH_KEY) || "null"
   );
 
-  const ownerName = user?.name || "Company Owner";
+  const ownerName = user?.fullName || "Company Owner";
 
   const handleLogout = () => {
-    sessionStorage.removeItem("OrgConnect-demo-user");
+    sessionStorage.removeItem(AUTH_KEY);
     navigate("/login", { replace: true });
   };
 
@@ -127,11 +131,13 @@ export default function OwnerLayout() {
               )}
             </button>
 
+            {/* AUTHENTICATED OWNER */}
             <div className="owner-user-info">
               <UserRound size={18} />
               <span>{ownerName}</span>
             </div>
 
+            {/* DESKTOP LOGOUT */}
             <button
               className="owner-logout"
               onClick={handleLogout}

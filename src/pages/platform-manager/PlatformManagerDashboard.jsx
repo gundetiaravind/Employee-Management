@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   Building2,
   UserRound,
@@ -10,111 +11,253 @@ import {
   Sun,
   Moon,
   CheckCircle2,
-  Ban,
   ShieldCheck,
   Eye,
-  Trash2,
-  Power,
   XCircle,
   Mail,
   CalendarDays,
   User,
+  MapPin,
+  Phone,
+  RefreshCw,
+  LoaderCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 import { useTheme } from "../../context/ThemeContext";
+import { getAuth, getToken, clearAuth } from "../../services/authService";
 import "./PlatformManagerDashboard.css";
 
-const initialCompanies = [
-  {
-    id: 1,
-    name: "TechNova Solutions",
-    ownerName: "Rahul Sharma",
-    email: "rahul@technova.com",
-    registrationDate: "12 Oct 2026",
-    status: "ACTIVE",
-  },
-  {
-    id: 2,
-    name: "GreenLeaf Technologies",
-    ownerName: "Priya Reddy",
-    email: "priya@greenleaf.com",
-    registrationDate: "15 Oct 2026",
-    status: "ACTIVE",
-  },
-  {
-    id: 3,
-    name: "Skyline Constructions",
-    ownerName: "Arjun Kumar",
-    email: "arjun@skyline.com",
-    registrationDate: "18 Oct 2026",
-    status: "INACTIVE",
-  },
-  {
-    id: 4,
-    name: "BrightPath Systems",
-    ownerName: "Sneha Patel",
-    email: "sneha@brightpath.com",
-    registrationDate: "21 Oct 2026",
-    status: "ACTIVE",
-  },
-  {
-    id: 5,
-    name: "UrbanNest Developers",
-    ownerName: "Kiran Rao",
-    email: "kiran@urbannest.com",
-    registrationDate: "25 Oct 2026",
-    status: "INACTIVE",
-  },
-];
+const API_URL = "http://localhost:8080/api/platform/companies";
+
+const normalizeStatus = (status) =>
+  String(status || "").toUpperCase();
+
+const formatDate = (date) => {
+  if (!date) return "Not available";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return date;
+  }
+
+  return parsedDate.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+// Display inconsistent legacy records clearly.
+const getDisplayStatus = (company) => {
+  const status = normalizeStatus(company.companyStatus);
+
+  if (status === "ACTIVE" && !company.ownerEmailVerified) {
+    return "REQUIRES REVIEW";
+  }
+
+  return status.replaceAll("_", " ") || "UNKNOWN";
+};
+
+const getStatusClass = (company) => {
+  const status = normalizeStatus(company.companyStatus);
+
+  if (status === "ACTIVE" && !company.ownerEmailVerified) {
+    return "review";
+  }
+
+  switch (status) {
+    case "APPROVED":
+      return "active";
+
+    case "PENDING_APPROVAL":
+    case "PENDING_VERIFICATION":
+      return "pending";
+
+    case "REJECTED":
+    case "INACTIVE":
+    case "BLOCKED":
+      return "inactive";
+
+    case "ACTIVE":
+      return "active";
+
+    default:
+      return "inactive";
+  }
+};
+
+const isPendingApproval = (company) =>
+  normalizeStatus(company.companyStatus) === "PENDING_APPROVAL";
+
+const canReviewCompany = (company) =>
+  isPendingApproval(company) && company.ownerEmailVerified === true;
 
 export default function PlatformManagerDashboard() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [companies, setCompanies] = useState(initialCompanies);
+  const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
-  const [deleteCompany, setDeleteCompany] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("ALL");
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [actionLoading, setActionLoading] = useState(null);
+
+  const auth = getAuth();
 
   const handleLogout = () => {
-    sessionStorage.removeItem("platformManagerDemoAuth");
+    clearAuth();
     navigate("/", { replace: true });
   };
 
-  const handleStatusChange = (id) => {
-    setCompanies((previous) =>
-      previous.map((company) =>
-        company.id === id
-          ? {
-              ...company,
-              status:
-                company.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-            }
-          : company
-      )
-    );
-  };
+  const loadCompanies = useCallback(async () => {
+    const token = getToken();
 
-  const handleDelete = () => {
-    if (!deleteCompany) return;
-
-    setCompanies((previous) =>
-      previous.filter((company) => company.id !== deleteCompany.id)
-    );
-
-    if (selectedCompany?.id === deleteCompany.id) {
-      setSelectedCompany(null);
+    if (!token) {
+      clearAuth();
+      navigate("/login", { replace: true });
+      return;
     }
 
-    setDeleteCompany(null);
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      const data = await response.json().catch(() => []);
+
+      if (response.status === 401) {
+        clearAuth();
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to load registered companies."
+        );
+      }
+
+      setCompanies(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Unable to connect to the backend.");
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    loadCompanies();
+  }, [loadCompanies]);
+
+  const handleCompanyAction = async (company, action) => {
+    if (!isPendingApproval(company)) {
+      setError("Only companies awaiting approval can be reviewed.");
+      return;
+    }
+
+    if (action === "approve" && !company.ownerEmailVerified) {
+      setError(
+        "This owner must verify their email before the company can be approved."
+      );
+      return;
+    }
+
+    const actionLabel = action === "approve" ? "approve" : "reject";
+
+    const confirmed = window.confirm(
+      `Are you sure you want to ${actionLabel} ${company.companyName}?`
+    );
+
+    if (!confirmed) return;
+
+    const token = getToken();
+
+    if (!token) {
+      clearAuth();
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    setActionLoading(`${company.companyId}-${action}`);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/${company.companyId}/${action}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        clearAuth();
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || `Unable to ${actionLabel} this company.`
+        );
+      }
+
+      setSelectedCompany(null);
+      await loadCompanies();
+    } catch (err) {
+      setError(err.message || "Company action failed.");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
+  const filteredCompanies = useMemo(() => {
+    if (filterStatus === "ALL") {
+      return companies;
+    }
+
+    return companies.filter((company) => {
+      const status = normalizeStatus(company.companyStatus);
+
+      if (filterStatus === "REQUIRES_REVIEW") {
+        return status === "ACTIVE" && !company.ownerEmailVerified;
+      }
+
+      return status === filterStatus;
+    });
+  }, [companies, filterStatus]);
+
   const totalCompanies = companies.length;
-  const activeCompanies = companies.filter(
-    (company) => company.status === "ACTIVE"
+
+  // Only PENDING_APPROVAL companies count as awaiting Platform Manager review.
+  const pendingCompanies = companies.filter(
+    (company) => normalizeStatus(company.companyStatus) === "PENDING_APPROVAL"
   ).length;
-  const inactiveCompanies = companies.filter(
-    (company) => company.status === "INACTIVE"
+
+  // Only APPROVED counts as officially approved.
+  const approvedCompanies = companies.filter(
+    (company) => normalizeStatus(company.companyStatus) === "APPROVED"
+  ).length;
+
+  const rejectedCompanies = companies.filter(
+    (company) => normalizeStatus(company.companyStatus) === "REJECTED"
   ).length;
 
   const stats = [
@@ -125,22 +268,27 @@ export default function PlatformManagerDashboard() {
       icon: Building2,
     },
     {
-      label: "Active Companies",
-      value: activeCompanies,
-      description: "Currently active organizations",
+      label: "Pending Approvals",
+      value: pendingCompanies,
+      description: "Awaiting your review",
+      icon: LoaderCircle,
+    },
+    {
+      label: "Approved Companies",
+      value: approvedCompanies,
+      description: "Officially approved organizations",
       icon: CheckCircle2,
     },
     {
-      label: "Inactive Companies",
-      value: inactiveCompanies,
-      description: "Currently inactive organizations",
-      icon: Ban,
+      label: "Rejected Companies",
+      value: rejectedCompanies,
+      description: "Rejected registrations",
+      icon: XCircle,
     },
   ];
 
   return (
     <div className="pm-layout">
-      {/* HEADER */}
       <header className="pm-header">
         <div className="pm-header-container">
           <div className="pm-brand">
@@ -167,6 +315,7 @@ export default function PlatformManagerDashboard() {
             </button>
 
             <button
+              type="button"
               className="pm-mobile-logout"
               onClick={handleLogout}
             >
@@ -177,6 +326,7 @@ export default function PlatformManagerDashboard() {
 
           <div className="pm-header-actions">
             <button
+              type="button"
               className="pm-theme-toggle"
               onClick={toggleTheme}
               aria-label="Toggle theme"
@@ -191,15 +341,20 @@ export default function PlatformManagerDashboard() {
 
             <div className="pm-user-info">
               <UserRound size={18} />
-              <span>Platform Manager</span>
+              <span>{auth?.fullName || "Platform Manager"}</span>
             </div>
 
-            <button className="pm-logout" onClick={handleLogout}>
+            <button
+              type="button"
+              className="pm-logout"
+              onClick={handleLogout}
+            >
               <LogOut size={17} />
               <span>Sign Out</span>
             </button>
 
             <button
+              type="button"
               className="pm-mobile-menu"
               onClick={() => setMenuOpen((previous) => !previous)}
               aria-label="Toggle navigation"
@@ -213,7 +368,6 @@ export default function PlatformManagerDashboard() {
 
       <main className="pm-main">
         <div className="pm-page-content">
-          {/* PAGE HEADING */}
           <section className="pm-welcome">
             <div>
               <span className="pm-eyebrow">
@@ -223,7 +377,7 @@ export default function PlatformManagerDashboard() {
               <h1>Manage Companies</h1>
 
               <p>
-                View, manage and monitor all organizations registered
+                View, review and manage organizations registered
                 on the OrgConnect platform.
               </p>
             </div>
@@ -233,7 +387,6 @@ export default function PlatformManagerDashboard() {
             </div>
           </section>
 
-          {/* STATISTICS */}
           <section className="pm-section">
             <div className="pm-stats-grid">
               {stats.map(({ label, value, description, icon: Icon }) => (
@@ -252,25 +405,73 @@ export default function PlatformManagerDashboard() {
             </div>
           </section>
 
-          {/* COMPANY TABLE */}
           <section className="pm-panel">
             <div className="pm-panel-heading">
               <div>
                 <h2>Registered Companies</h2>
                 <p>
-                  {totalCompanies} companies registered on OrgConnect.
+                  {filteredCompanies.length} of {totalCompanies} companies
+                  displayed.
                 </p>
               </div>
 
-              <Building2 size={23} />
+              <div className="pm-table-controls">
+                <select
+                  className="pm-status-filter"
+                  value={filterStatus}
+                  onChange={(event) => setFilterStatus(event.target.value)}
+                  aria-label="Filter companies by status"
+                >
+                  <option value="ALL">All Companies</option>
+                  <option value="PENDING_APPROVAL">Pending Approval</option>
+                  <option value="PENDING_VERIFICATION">
+                    Pending Verification
+                  </option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="REQUIRES_REVIEW">Requires Review</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+
+                <button
+                  type="button"
+                  className="pm-refresh-button"
+                  onClick={loadCompanies}
+                  disabled={loading}
+                  title="Refresh companies"
+                >
+                  <RefreshCw size={18} />
+                </button>
+              </div>
             </div>
 
-            {companies.length === 0 ? (
+            {error && (
+              <div className="pm-error-message" role="alert">
+                <span>{error}</span>
+                <button type="button" onClick={loadCompanies}>
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="pm-empty-state">
+                <LoaderCircle size={34} />
+                <strong>Loading companies...</strong>
+                <p>Fetching company information from the server.</p>
+              </div>
+            ) : filteredCompanies.length === 0 ? (
               <div className="pm-empty-state">
                 <Building2 size={38} />
-                <strong>No companies registered yet</strong>
+                <strong>
+                  {companies.length === 0
+                    ? "No companies registered yet"
+                    : "No companies found"}
+                </strong>
                 <p>
-                  Companies registered on OrgConnect will appear here.
+                  {companies.length === 0
+                    ? "Registered companies will appear here."
+                    : "Try selecting a different status filter."}
                 </p>
               </div>
             ) : (
@@ -288,65 +489,84 @@ export default function PlatformManagerDashboard() {
                   </thead>
 
                   <tbody>
-                    {companies.map((company) => (
-                      <tr key={company.id}>
-                        <td className="pm-company-name">
-                          {company.name}
-                        </td>
+                    {filteredCompanies.map((company) => {
+                      const canReview = canReviewCompany(company);
 
-                        <td>{company.ownerName}</td>
-                        <td>{company.email}</td>
-                        <td>{company.registrationDate}</td>
+                      return (
+                        <tr key={company.companyId}>
+                          <td className="pm-company-name">
+                            {company.companyName}
+                          </td>
 
-                        <td>
-                          <span
-                            className={`pm-status ${
-                              company.status === "ACTIVE"
-                                ? "active"
-                                : "inactive"
-                            }`}
-                          >
-                            {company.status}
-                          </span>
-                        </td>
+                          <td>{company.ownerName || "Not available"}</td>
 
-                        <td>
-                          <div className="pm-company-actions">
-                            <button
-                              className="pm-action-button pm-view-action"
-                              title="View company"
-                              onClick={() => setSelectedCompany(company)}
+                          <td>
+                            {company.ownerEmail || company.companyEmail}
+                          </td>
+
+                          <td>{formatDate(company.createdAt)}</td>
+
+                          <td>
+                            <span
+                              className={`pm-status ${getStatusClass(company)}`}
                             >
-                              <Eye size={16} />
-                            </button>
+                              {getDisplayStatus(company)}
+                            </span>
+                          </td>
 
-                            <button
-                              className={`pm-action-button ${
-                                company.status === "ACTIVE"
-                                  ? "pm-deactivate-action"
-                                  : "pm-activate-action"
-                              }`}
-                              title={
-                                company.status === "ACTIVE"
-                                  ? "Deactivate company"
-                                  : "Activate company"
-                              }
-                              onClick={() => handleStatusChange(company.id)}
-                            >
-                              <Power size={16} />
-                            </button>
+                          <td>
+                            <div className="pm-company-actions">
+                              <button
+                                type="button"
+                                className="pm-action-button pm-view-action"
+                                title="View company"
+                                onClick={() => setSelectedCompany(company)}
+                              >
+                                <Eye size={16} />
+                              </button>
 
-                            <button
-                              className="pm-action-button pm-delete-action"
-                              title="Delete company"
-                              onClick={() => setDeleteCompany(company)}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              {canReview && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="pm-action-button pm-activate-action"
+                                    title="Approve company"
+                                    disabled={actionLoading !== null}
+                                    onClick={() =>
+                                      handleCompanyAction(company, "approve")
+                                    }
+                                  >
+                                    {actionLoading ===
+                                    `${company.companyId}-approve` ? (
+                                      <LoaderCircle size={16} />
+                                    ) : (
+                                      <CheckCircle2 size={16} />
+                                    )}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="pm-action-button pm-delete-action"
+                                    title="Reject company"
+                                    disabled={actionLoading !== null}
+                                    onClick={() =>
+                                      handleCompanyAction(company, "reject")
+                                    }
+                                  >
+                                    {actionLoading ===
+                                    `${company.companyId}-reject` ? (
+                                      <LoaderCircle size={16} />
+                                    ) : (
+                                      <XCircle size={16} />
+                                    )}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -355,13 +575,11 @@ export default function PlatformManagerDashboard() {
 
           <div className="pm-demo-note">
             <ShieldCheck size={16} />
-            Demo company records. Changes are temporary and will reset
-            when the page is refreshed.
+            Company information is loaded directly from the OrgConnect backend.
           </div>
         </div>
       </main>
 
-      {/* VIEW COMPANY MODAL */}
       {selectedCompany && (
         <div
           className="pm-modal-overlay"
@@ -374,10 +592,11 @@ export default function PlatformManagerDashboard() {
             <div className="pm-modal-header">
               <div>
                 <h2>Company Details</h2>
-                <p>Organization information</p>
+                <p>Registered organization information</p>
               </div>
 
               <button
+                type="button"
                 className="pm-modal-close"
                 onClick={() => setSelectedCompany(null)}
                 aria-label="Close"
@@ -391,31 +610,41 @@ export default function PlatformManagerDashboard() {
                 <Building2 size={28} />
               </div>
 
-              <h3>{selectedCompany.name}</h3>
+              <h3>{selectedCompany.companyName}</h3>
 
               <span
-                className={`pm-status ${
-                  selectedCompany.status === "ACTIVE"
-                    ? "active"
-                    : "inactive"
-                }`}
+                className={`pm-status ${getStatusClass(selectedCompany)}`}
               >
-                {selectedCompany.status}
+                {getDisplayStatus(selectedCompany)}
               </span>
 
               <div className="pm-detail-row">
                 <User size={18} />
                 <div>
                   <small>Company Owner</small>
-                  <strong>{selectedCompany.ownerName}</strong>
+                  <strong>
+                    {selectedCompany.ownerName || "Not available"}
+                  </strong>
                 </div>
               </div>
 
               <div className="pm-detail-row">
                 <Mail size={18} />
                 <div>
-                  <small>Email Address</small>
-                  <strong>{selectedCompany.email}</strong>
+                  <small>Owner Email</small>
+                  <strong>
+                    {selectedCompany.ownerEmail || "Not available"}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="pm-detail-row">
+                <Phone size={18} />
+                <div>
+                  <small>Owner Mobile</small>
+                  <strong>
+                    {selectedCompany.ownerMobileNumber || "Not available"}
+                  </strong>
                 </div>
               </div>
 
@@ -423,59 +652,117 @@ export default function PlatformManagerDashboard() {
                 <CalendarDays size={18} />
                 <div>
                   <small>Registration Date</small>
-                  <strong>{selectedCompany.registrationDate}</strong>
+                  <strong>{formatDate(selectedCompany.createdAt)}</strong>
                 </div>
               </div>
+
+              <div className="pm-detail-row">
+                <Building2 size={18} />
+                <div>
+                  <small>Registration Number</small>
+                  <strong>
+                    {selectedCompany.registrationNumber || "Not available"}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="pm-detail-row">
+                <MapPin size={18} />
+                <div>
+                  <small>Company Address</small>
+                  <strong>
+                    {[
+                      selectedCompany.companyAddress,
+                      selectedCompany.city,
+                      selectedCompany.state,
+                      selectedCompany.country,
+                      selectedCompany.pinCode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "Not available"}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="pm-detail-row">
+                <ShieldCheck size={18} />
+                <div>
+                  <small>Owner Email Verification</small>
+                  <strong>
+                    {selectedCompany.ownerEmailVerified
+                      ? "Verified"
+                      : "Not verified"}
+                  </strong>
+                </div>
+              </div>
+
+              {normalizeStatus(selectedCompany.companyStatus) === "ACTIVE" &&
+                !selectedCompany.ownerEmailVerified && (
+                  <div className="pm-review-notice">
+                    <AlertTriangle size={18} />
+                    <div>
+                      <strong>Requires Review</strong>
+                      <p>
+                        This company is marked ACTIVE, but its owner's email
+                        is not verified. It is not counted as approved and
+                        cannot be approved through this dashboard.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+              {isPendingApproval(selectedCompany) &&
+                !selectedCompany.ownerEmailVerified && (
+                  <div className="pm-review-notice">
+                    <AlertTriangle size={18} />
+                    <div>
+                      <strong>Email Verification Required</strong>
+                      <p>
+                        The owner must verify their email before this company
+                        can be approved.
+                      </p>
+                    </div>
+                  </div>
+                )}
             </div>
 
-            <button
-              className="pm-modal-done"
-              onClick={() => setSelectedCompany(null)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+            {canReviewCompany(selectedCompany) && (
+              <div className="pm-confirm-actions">
+                <button
+                  type="button"
+                  className="pm-cancel-button"
+                  onClick={() =>
+                    handleCompanyAction(selectedCompany, "reject")
+                  }
+                  disabled={actionLoading !== null}
+                >
+                  <XCircle size={16} />
+                  Reject
+                </button>
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {deleteCompany && (
-        <div
-          className="pm-modal-overlay"
-          onClick={() => setDeleteCompany(null)}
-        >
-          <div
-            className="pm-modal pm-delete-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="pm-delete-icon">
-              <Trash2 size={25} />
-            </div>
+                <button
+                  type="button"
+                  className="pm-modal-done"
+                  onClick={() =>
+                    handleCompanyAction(selectedCompany, "approve")
+                  }
+                  disabled={actionLoading !== null}
+                >
+                  <CheckCircle2 size={16} />
+                  Approve
+                </button>
+              </div>
+            )}
 
-            <h2>Delete Company?</h2>
-
-            <p>
-              Are you sure you want to delete{" "}
-              <strong>{deleteCompany.name}</strong>? This action cannot
-              be undone.
-            </p>
-
-            <div className="pm-confirm-actions">
+            {!canReviewCompany(selectedCompany) && (
               <button
-                className="pm-cancel-button"
-                onClick={() => setDeleteCompany(null)}
+                type="button"
+                className="pm-modal-done"
+                onClick={() => setSelectedCompany(null)}
               >
-                Cancel
+                Close
               </button>
-
-              <button
-                className="pm-confirm-delete"
-                onClick={handleDelete}
-              >
-                <Trash2 size={16} />
-                Delete Company
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -11,26 +12,17 @@ import {
 } from "lucide-react";
 import "./Login.css";
 
-const DEMO_USERS = [
-  {
-    email: "owner@gmail.com",
-    password: "Owner@123",
-    role: "OWNER",
-    dashboard: "/owner/dashboard",
-  },
-  {
-    email: "admin@gmail.com",
-    password: "Admin@123",
-    role: "ADMIN",
-    dashboard: "/admin/dashboard",
-  },
-  {
-    email: "employee@gmail.com",
-    password: "Employee@123",
-    role: "EMPLOYEE",
-    dashboard: "/employee/dashboard",
-  },
-];
+const API_URL = "http://localhost:8080/api/auth/login";
+export const AUTH_KEY = "orgconnect-auth";
+
+const ROLE_ROUTES = {
+  PLATFORM_MANAGER: "/platform-manager/dashboard",
+  SUPER_ADMIN: "/platform-manager/dashboard",
+  COMPANY_OWNER: "/owner/dashboard",
+  OWNER: "/owner/dashboard",
+  ADMIN: "/admin/dashboard",
+  EMPLOYEE: "/employee/dashboard",
+};
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -39,6 +31,7 @@ export default function Login() {
     password: "",
   });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -47,19 +40,11 @@ export default function Login() {
       ...previous,
       [e.target.name]: e.target.value,
     }));
+
     setError("");
   };
 
-  // Fill email and password when a demo role is selected.
-  const fillDemoCredentials = (user) => {
-    setForm({
-      email: user.email,
-      password: user.password,
-    });
-    setError("");
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.email.trim() || !form.password) {
@@ -67,35 +52,67 @@ export default function Login() {
       return;
     }
 
-    const user = DEMO_USERS.find(
-      (account) =>
-        account.email === form.email.trim().toLowerCase() &&
-        account.password === form.password
-    );
+    try {
+      setLoading(true);
+      setError("");
 
-    if (!user) {
-      setError("Invalid email or password. Please try again.");
-      return;
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          data.error ||
+          "Invalid email or password."
+        );
+      }
+
+      if (!data.accessToken) {
+        throw new Error("Authentication token was not received.");
+      }
+
+      const role = String(data.role || "").replace(/^ROLE_/, "");
+
+      const dashboard = ROLE_ROUTES[role];
+
+      if (!dashboard) {
+        throw new Error("Your account role is not recognized.");
+      }
+
+      const authenticatedUser = {
+        accessToken: data.accessToken,
+        tokenType: data.tokenType || "Bearer",
+        userId: data.userId,
+        fullName: data.fullName,
+        email: data.email,
+        role,
+      };
+
+      sessionStorage.setItem(
+        AUTH_KEY,
+        JSON.stringify(authenticatedUser)
+      );
+
+      navigate(dashboard, { replace: true });
+
+    } catch (err) {
+      setError(
+        err.message ||
+        "Unable to connect to the server. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
-
-    // Temporary demo authentication.
-    const demoUser = {
-      email: user.email,
-      role: user.role,
-      name:
-        user.role === "OWNER"
-          ? "Company Owner"
-          : user.role === "ADMIN"
-            ? "Company Admin"
-            : "Employee",
-    };
-
-    sessionStorage.setItem(
-      "OrgConnect-demo-user",
-      JSON.stringify(demoUser)
-    );
-
-    navigate(user.dashboard, { replace: true });
   };
 
   return (
@@ -163,7 +180,9 @@ export default function Login() {
               <button
                 type="button"
                 className="password-toggle"
-                onClick={() => setShowPassword((previous) => !previous)}
+                onClick={() =>
+                  setShowPassword((previous) => !previous)
+                }
                 aria-label={
                   showPassword ? "Hide password" : "Show password"
                 }
@@ -199,9 +218,14 @@ export default function Login() {
               </p>
             )}
 
-            <button type="submit" className="auth-submit">
-              Sign In
-              <ArrowRight size={18} />
+            <button
+              type="submit"
+              className="auth-submit"
+              disabled={loading}
+            >
+              {loading ? "Signing In..." : "Sign In"}
+
+              {!loading && <ArrowRight size={18} />}
             </button>
           </form>
 
@@ -209,35 +233,11 @@ export default function Login() {
             Don't have an account?{" "}
             <Link to="/register">Create account</Link>
           </div>
-
-          <div className="demo-credentials">
-            <h4>Quick Demo Login</h4>
-
-            <p>Choose a role to automatically fill the login details.</p>
-
-            {DEMO_USERS.map((user) => (
-              <button
-                key={user.role}
-                type="button"
-                className="demo-login-button"
-                onClick={() => fillDemoCredentials(user)}
-              >
-                <span>
-                  {" "}
-                  {user.role.charAt(0) +
-                    user.role.slice(1).toLowerCase()}{" "}
-                  Credentials
-                </span>
-
-                <ArrowRight size={17} />
-              </button>
-            ))}
-          </div>
         </div>
 
         <p className="auth-copyright">
-          © {new Date().getFullYear()} OrgConnect
-        . All rights reserved.
+          © {new Date().getFullYear()} OrgConnect.
+          All rights reserved.
         </p>
       </div>
     </div>

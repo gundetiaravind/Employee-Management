@@ -161,3 +161,296 @@
     padding: 25px 19px;
   }
 }
+
+/* Section headings */
+
+.employee-registration-section {
+  margin-top: 24px;
+}
+
+.employee-registration-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.employee-registration-section h3 svg {
+  color: var(--primary);
+}
+
+/* Two-column layout */
+
+.employee-registration-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.employee-registration-grid > div {
+  min-width: 0;
+}
+
+.employee-registration-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+/* Input with icons */
+
+.employee-registration-input {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.employee-registration-input:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--soft-primary);
+}
+
+.employee-registration-input > svg {
+  flex-shrink: 0;
+}
+
+.employee-registration-input input {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.employee-registration-input input::placeholder {
+  color: var(--muted);
+}
+
+/* Password visibility */
+
+.employee-registration-password button {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.employee-registration-password button:hover {
+  color: var(--primary);
+}
+
+/* Helper text */
+
+.employee-registration-hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Password strength */
+
+.employee-password-strength {
+  margin-top: 8px;
+}
+
+.employee-password-strength-bars {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 5px;
+}
+
+.employee-password-strength-bars span {
+  height: 4px;
+  flex: 1;
+  border-radius: 5px;
+  background: var(--border);
+}
+
+.employee-password-strength.weak .filled {
+  background: #dc5555;
+}
+
+.employee-password-strength.medium .filled {
+  background: #e5a52e;
+}
+
+.employee-password-strength.strong .filled {
+  background: #168348;
+}
+
+.employee-password-strength small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Password matching */
+
+.employee-password-match,
+.employee-password-mismatch {
+  display: block;
+  margin-top: 7px;
+  font-size: 11px;
+}
+
+.employee-password-match {
+  color: #168348;
+}
+
+.employee-password-mismatch {
+  color: #dc5555;
+}
+
+/* Registration note */
+
+.employee-registration-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--soft-primary);
+  color: var(--primary);
+}
+
+.employee-registration-note svg {
+  flex-shrink: 0;
+}
+
+.employee-registration-note p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Submit button */
+
+.employee-registration-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+/* Responsive layout */
+
+@media (max-width: 550px) {
+  .employee-registration-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .employee-registration-grid .full-width {
+    grid-column: auto;
+  }
+}
+
+/* Registration form additional fields */
+
+.employee-registration-optional {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted, #888);
+}
+
+.employee-registration-input select {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text, #333);
+  font: inherit;
+  cursor: pointer;
+}
+
+.employee-registration-input select option {
+  color: #222;
+  background: #fff;
+}
+
+.employee-registration-textarea {
+  align-items: flex-start;
+  padding-top: 13px;
+}
+
+.employee-registration-textarea svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.employee-registration-textarea textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 75px;
+  resize: vertical;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text, #333);
+  font: inherit;
+}
+
+.employee-registration-textarea textarea::placeholder {
+  color: var(--muted, #999);
+}
+
+.employee-registration-section {
+  margin-top: 25px;
+}
+
+.employee-registration-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+.employee-registration-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+}
+
+.employee-registration-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.employee-registration-input {
+  min-width: 0;
+}
+
+.employee-registration-input input,
+.employee-registration-input select,
+.employee-registration-input textarea {
+  box-sizing: border-box;
+}
+
+@media (max-width: 550px) {
+  .employee-registration-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-registration-grid .full-width {
+    grid-column: auto;
+  }
+}

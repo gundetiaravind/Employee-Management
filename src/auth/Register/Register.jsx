@@ -54,7 +54,7 @@ function Register() {
             </div>
 
             <div className="register-option-content">
-              <h2>Join an Existing Company</h2>
+              <h2>Join as Existing Admin/Employee </h2>
               <p>
                 Join your company using the company code or
                 invitation provided by your company.
