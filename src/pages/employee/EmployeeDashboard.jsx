@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getAuth } from "../../services/authService";
 import { NavLink, Outlet, Navigate, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -33,11 +34,7 @@ const navigation = [
 ];
 
 function getSessionUser() {
-  try {
-    return JSON.parse(sessionStorage.getItem("OrgConnect-demo-user") || "null");
-  } catch {
-    return null;
-  }
+  return getAuth();
 }
 
 export default function EmployeeDashboard() {
@@ -52,9 +49,9 @@ export default function EmployeeDashboard() {
   }
 
   const handleLogout = () => {
-    sessionStorage.removeItem("OrgConnect-demo-user");
-    navigate("/login", { replace: true });
-  };
+  sessionStorage.removeItem("orgconnect-auth");
+  navigate("/login", { replace: true });
+};
 
   return (
     <div className={`employee-layout employee-${theme}`}>
@@ -114,7 +111,7 @@ export default function EmployeeDashboard() {
 
             <div className="employee-user-info">
               <UserRound size={18} />
-              <span>{user.name || "Employee"}</span>
+              <span>{user.fullName || "Employee"}</span>
             </div>
 
             <button className="employee-logout" onClick={handleLogout}>
@@ -145,7 +142,7 @@ export default function EmployeeDashboard() {
 
 export function EmployeeHome() {
   const user = getSessionUser();
-  const firstName = user?.name?.trim().split(" ")[0] || "Employee";
+  const firstName = user?.fullName?.trim().split(" ")[0] || "Employee";
 
   const stats = [
     {

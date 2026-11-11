@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
   UserRound,
   Mail,
@@ -8,73 +9,25 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   IdCard,
-  Pencil,
-  Save,
-  X,
   ShieldCheck,
-  Camera,
   Contact,
 } from "lucide-react";
 
+import axios from "axios";
+import { getToken } from "../../services/authService";
+
 import "./MyProfile.css";
 
-function getSessionUser() {
-  try {
-    return JSON.parse(sessionStorage.getItem("OrgConnect-demo-user") || "null");
-  } catch {
-    return null;
-  }
-}
 
-function getProfileKey(user) {
-  const identifier = user?.email || user?.id || user?.employeeId || "current";
-  return `OrgConnect-employee-profile-${identifier}`;
-}
-
-function getInitialProfile(user) {
-  const key = getProfileKey(user);
-
-  try {
-    const savedProfile = sessionStorage.getItem(key);
-
-    if (savedProfile) {
-      return {
-        ...createDefaultProfile(user),
-        ...JSON.parse(savedProfile),
-      };
-    }
-  } catch {
-    // Use the session user details if saved profile data is unavailable.
-  }
-
-  return createDefaultProfile(user);
-}
-
-function createDefaultProfile(user) {
-  return {
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    alternatePhone: user?.alternatePhone || "",
-    address: user?.address || "",
-    city: user?.city || "",
-    state: user?.state || "",
-    postalCode: user?.postalCode || "",
-    employeeId: user?.employeeId || "Not provided",
-    department: user?.department || "Not provided",
-    designation: user?.designation || "Not provided",
-    joiningDate: user?.joiningDate || "",
-    employmentType: user?.employmentType || "Not provided",
-    reportingManager: user?.reportingManager || "Not provided",
-  };
-}
-
+// Format date from backend
 function formatDate(date) {
   if (!date) return "Not provided";
 
   const parsedDate = new Date(date);
 
-  if (Number.isNaN(parsedDate.getTime())) return date;
+  if (Number.isNaN(parsedDate.getTime())) {
+    return date;
+  }
 
   return parsedDate.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -83,157 +36,191 @@ function formatDate(date) {
   });
 }
 
-export default function MyProfile() {
-  const user = getSessionUser();
 
-  const [profile, setProfile] = useState(() => getInitialProfile(user));
-  const [form, setForm] = useState(() => getInitialProfile(user));
-  const [editing, setEditing] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+export default function MyProfile() {
+  const [profile, setProfile] = useState(null);
+
+  const [loading, setLoading] = useState(true);
+
   const [errorMessage, setErrorMessage] = useState("");
 
+
+  // Fetch logged-in employee profile
   useEffect(() => {
-    const updatedProfile = getInitialProfile(user);
-    setProfile(updatedProfile);
-    setForm(updatedProfile);
-  }, [user?.email]);
+    const fetchMyProfile = async () => {
+      try {
+        setLoading(true);
+        setErrorMessage("");
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
+        // Get JWT from orgconnect-auth
+        const token = getToken();
 
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+        console.log("Employee JWT:", token);
 
-    setErrorMessage("");
-    setSuccessMessage("");
-  };
+        if (!token) {
+          throw new Error("Authentication token not found. Please login again.");
+        }
 
-  const handleEdit = () => {
-    setForm({ ...profile });
-    setEditing(true);
-    setSuccessMessage("");
-    setErrorMessage("");
-  };
-
-  const handleCancel = () => {
-    setForm({ ...profile });
-    setEditing(false);
-    setErrorMessage("");
-  };
-
-  const handleSave = (event) => {
-    event.preventDefault();
-
-    if (!form.name.trim()) {
-      setErrorMessage("Please enter your full name.");
-      return;
-    }
-
-    if (!form.email.trim()) {
-      setErrorMessage("Please enter your email address.");
-      return;
-    }
-
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailPattern.test(form.email)) {
-      setErrorMessage("Please enter a valid email address.");
-      return;
-    }
-
-    const phonePattern = /^[0-9+\-\s()]{7,20}$/;
-
-    if (form.phone && !phonePattern.test(form.phone)) {
-      setErrorMessage("Please enter a valid phone number.");
-      return;
-    }
-
-    if (form.alternatePhone && !phonePattern.test(form.alternatePhone)) {
-      setErrorMessage("Please enter a valid alternate phone number.");
-      return;
-    }
-
-    try {
-      const updatedProfile = {
-        ...profile,
-        name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        alternatePhone: form.alternatePhone.trim(),
-        address: form.address.trim(),
-        city: form.city.trim(),
-        state: form.state.trim(),
-        postalCode: form.postalCode.trim(),
-      };
-
-      sessionStorage.setItem(
-        getProfileKey(user),
-        JSON.stringify(updatedProfile)
-      );
-
-      setProfile(updatedProfile);
-      setForm(updatedProfile);
-      setEditing(false);
-      setSuccessMessage("Your profile has been updated successfully.");
-
-      // Keep the workspace header name in sync with the updated profile.
-      if (user) {
-        sessionStorage.setItem(
-          "OrgConnect-demo-user",
-          JSON.stringify({
-            ...user,
-            name: updatedProfile.name,
-            email: updatedProfile.email,
-            phone: updatedProfile.phone,
-          })
+        const response = await axios.get(
+          "http://localhost:8080/api/employees/me",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
         );
-      }
-    } catch {
-      setErrorMessage("Unable to save your profile. Please try again.");
-    }
-  };
 
-  const initials = (profile.name || "Employee")
+        console.log("Employee profile response:", response.data);
+
+        setProfile(response.data);
+      } catch (error) {
+        console.error("Failed to fetch employee profile:", error);
+
+        if (error.response) {
+          console.error("Status:", error.response.status);
+          console.error("Backend response:", error.response.data);
+        }
+
+        setErrorMessage(
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          error.message ||
+          "Unable to load your profile."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyProfile();
+  }, []);
+
+
+  // Loading state
+  if (loading) {
+    return (
+      <section className="employee-profile-page">
+        <div className="employee-profile-heading">
+          <div>
+            <span className="employee-eyebrow">
+              EMPLOYEE ACCOUNT
+            </span>
+
+            <h1>My Profile</h1>
+
+            <p>
+              Loading your personal and professional information...
+            </p>
+          </div>
+        </div>
+
+        <section className="employee-profile-card">
+          <div className="employee-profile-overview-info">
+            <h2>Loading profile...</h2>
+            <p>Please wait while we fetch your information.</p>
+          </div>
+        </section>
+      </section>
+    );
+  }
+
+
+  // Error state
+  if (errorMessage) {
+    return (
+      <section className="employee-profile-page">
+        <div className="employee-profile-heading">
+          <div>
+            <span className="employee-eyebrow">
+              EMPLOYEE ACCOUNT
+            </span>
+
+            <h1>My Profile</h1>
+
+            <p>
+              View your personal and professional information.
+            </p>
+          </div>
+        </div>
+
+        <div className="employee-profile-alert error">
+          <ShieldCheck size={18} />
+
+          <span>{errorMessage}</span>
+        </div>
+      </section>
+    );
+  }
+
+
+  // No profile data
+  if (!profile) {
+    return (
+      <section className="employee-profile-page">
+        <div className="employee-profile-heading">
+          <div>
+            <span className="employee-eyebrow">
+              EMPLOYEE ACCOUNT
+            </span>
+
+            <h1>My Profile</h1>
+
+            <p>
+              View your personal and professional information.
+            </p>
+          </div>
+        </div>
+
+        <section className="employee-profile-card">
+          <div className="employee-profile-overview-info">
+            <h2>No profile data found</h2>
+
+            <p>
+              Employee profile information is not available.
+            </p>
+          </div>
+        </section>
+      </section>
+    );
+  }
+
+
+  // Employee initials
+  const initials = (profile.name || profile.fullName || "Employee")
     .trim()
     .split(/\s+/)
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 
+
+  // Personal information
   const personalFields = [
     {
       label: "Full Name",
-      name: "name",
+      value: profile.name || profile.fullName,
       icon: UserRound,
-      editable: true,
-      required: true,
     },
     {
       label: "Email Address",
-      name: "email",
+      value: profile.email,
       icon: Mail,
-      editable: true,
-      required: true,
-      type: "email",
     },
     {
       label: "Phone Number",
-      name: "phone",
+      value: profile.phone,
       icon: Phone,
-      editable: true,
-      type: "tel",
     },
     {
       label: "Alternate Phone",
-      name: "alternatePhone",
+      value: profile.alterPhone,
       icon: Contact,
-      editable: true,
-      type: "tel",
     },
   ];
 
+
+  // Employment information
   const employmentFields = [
     {
       label: "Employee ID",
@@ -267,237 +254,312 @@ export default function MyProfile() {
     },
   ];
 
+
   return (
     <section className="employee-profile-page">
+
+      {/* PAGE HEADER */}
       <div className="employee-profile-heading">
+
         <div>
-          <span className="employee-eyebrow">EMPLOYEE ACCOUNT</span>
+          <span className="employee-eyebrow">
+            EMPLOYEE ACCOUNT
+          </span>
+
           <h1>My Profile</h1>
-          <p>View and manage your personal and professional information.</p>
+
+          <p>
+            View your personal and professional information.
+          </p>
         </div>
 
-        {!editing ? (
-          <button className="employee-profile-edit-btn" onClick={handleEdit}>
-            <Pencil size={16} />
-            Edit Profile
-          </button>
-        ) : (
-          <div className="employee-profile-heading-actions">
-            <button
-              className="employee-profile-cancel-btn"
-              onClick={handleCancel}
-              type="button"
-            >
-              <X size={16} />
-              Cancel
-            </button>
-
-            <button
-              className="employee-profile-save-btn"
-              type="submit"
-              form="employee-profile-form"
-            >
-              <Save size={16} />
-              Save Changes
-            </button>
-          </div>
-        )}
       </div>
 
-      {successMessage && (
-        <div className="employee-profile-alert success">
-          <ShieldCheck size={18} />
-          {successMessage}
+
+      {/* PROFILE OVERVIEW */}
+      <section className="employee-profile-card employee-profile-overview">
+
+        <div className="employee-profile-avatar">
+          {profile.profilePhotoUrl ? (
+            <img
+              src={`http://localhost:8080${profile.profilePhotoUrl}`}
+              alt={profile.name || profile.fullName || "Employee"}
+              className="employee-profile-photo"
+            />
+          ) : (
+            initials || <UserRound size={34} />
+          )}
+
+          <span className="employee-profile-avatar-status" />
         </div>
-      )}
 
-      {errorMessage && (
-        <div className="employee-profile-alert error">
-          {errorMessage}
+
+        <div className="employee-profile-overview-info">
+
+          <h2>
+            {profile.name ||
+              profile.fullName ||
+              "Employee Name"}
+          </h2>
+
+          <p>
+            {profile.designation || "Employee"}
+          </p>
+
+          <span className="employee-profile-id">
+
+            <IdCard size={14} />
+
+            {profile.employeeId || "Employee ID not provided"}
+
+          </span>
+
         </div>
-      )}
 
-      <form id="employee-profile-form" onSubmit={handleSave}>
-        <section className="employee-profile-card employee-profile-overview">
-          <div className="employee-profile-avatar">
-            {initials || <UserRound size={34} />}
-            <span className="employee-profile-avatar-status" />
+
+        <div className="employee-profile-status">
+
+          <span className="employee-profile-status-dot" />
+
+          Employee Account
+
+        </div>
+
+      </section>
+
+
+      {/* PERSONAL INFORMATION */}
+      <section className="employee-profile-card">
+
+        <div className="employee-profile-section-heading">
+
+          <div className="employee-profile-section-icon">
+            <UserRound size={19} />
           </div>
 
-          <div className="employee-profile-overview-info">
-            <h2>{profile.name || "Employee Name"}</h2>
-            <p>{profile.designation}</p>
-            <span className="employee-profile-id">
-              <IdCard size={14} />
-              {profile.employeeId}
-            </span>
+          <div>
+
+            <h2>Personal Information</h2>
+
+            <p>
+              Your personal and contact details
+            </p>
+
           </div>
 
-          <div className="employee-profile-status">
-            <span className="employee-profile-status-dot" />
-            Employee Account
-          </div>
-        </section>
+        </div>
 
-        <section className="employee-profile-card">
-          <div className="employee-profile-section-heading">
-            <div className="employee-profile-section-icon">
-              <UserRound size={19} />
-            </div>
-            <div>
-              <h2>Personal Information</h2>
-              <p>Your personal and contact details</p>
-            </div>
-          </div>
 
-          <div className="employee-profile-fields">
-            {personalFields.map((field) => {
-              const Icon = field.icon;
+        <div className="employee-profile-fields">
 
-              return (
-                <div className="employee-profile-field" key={field.name}>
-                  <label htmlFor={field.name}>
-                    {field.label}
-                    {field.required && (
-                      <span className="employee-profile-required"> *</span>
-                    )}
-                  </label>
+          {personalFields.map((field) => {
 
-                  <div className="employee-profile-input-wrap">
-                    <Icon size={17} />
+            const Icon = field.icon;
 
-                    <input
-                      id={field.name}
-                      name={field.name}
-                      type={field.type || "text"}
-                      value={form[field.name] || ""}
-                      onChange={handleChange}
-                      placeholder={`Enter ${field.label.toLowerCase()}`}
-                      readOnly={!editing || !field.editable}
-                      required={field.required}
-                    />
-                  </div>
+            return (
+              <div
+                className="employee-profile-field"
+                key={field.label}
+              >
+
+                <label>
+                  {field.label}
+                </label>
+
+                <div className="employee-profile-readonly">
+
+                  <Icon size={17} />
+
+                  <span>
+                    {field.value || "Not provided"}
+                  </span>
+
                 </div>
-              );
-            })}
-          </div>
-        </section>
 
-        <section className="employee-profile-card">
-          <div className="employee-profile-section-heading">
-            <div className="employee-profile-section-icon">
-              <MapPin size={19} />
-            </div>
-            <div>
-              <h2>Address Information</h2>
-              <p>Your current residential address</p>
-            </div>
-          </div>
-
-          <div className="employee-profile-fields">
-            <div className="employee-profile-field full-width">
-              <label htmlFor="address">Address</label>
-              <div className="employee-profile-input-wrap">
-                <MapPin size={17} />
-                <input
-                  id="address"
-                  name="address"
-                  value={form.address || ""}
-                  onChange={handleChange}
-                  placeholder="Enter your address"
-                  readOnly={!editing}
-                />
               </div>
-            </div>
+            );
 
-            <div className="employee-profile-field">
-              <label htmlFor="city">City</label>
-              <input
-                id="city"
-                name="city"
-                value={form.city || ""}
-                onChange={handleChange}
-                placeholder="Enter city"
-                readOnly={!editing}
-              />
-            </div>
+          })}
 
-            <div className="employee-profile-field">
-              <label htmlFor="state">State</label>
-              <input
-                id="state"
-                name="state"
-                value={form.state || ""}
-                onChange={handleChange}
-                placeholder="Enter state"
-                readOnly={!editing}
-              />
-            </div>
+        </div>
 
-            <div className="employee-profile-field">
-              <label htmlFor="postalCode">Postal Code</label>
-              <input
-                id="postalCode"
-                name="postalCode"
-                value={form.postalCode || ""}
-                onChange={handleChange}
-                placeholder="Enter postal code"
-                readOnly={!editing}
-              />
-            </div>
-          </div>
-        </section>
+      </section>
 
-        <section className="employee-profile-card">
-          <div className="employee-profile-section-heading">
-            <div className="employee-profile-section-icon">
-              <BriefcaseBusiness size={19} />
-            </div>
-            <div>
-              <h2>Employment Information</h2>
-              <p>Your company and job details</p>
-            </div>
+
+      {/* ADDRESS INFORMATION */}
+      <section className="employee-profile-card">
+
+        <div className="employee-profile-section-heading">
+
+          <div className="employee-profile-section-icon">
+            <MapPin size={19} />
           </div>
 
-          <div className="employee-profile-fields">
-            {employmentFields.map((field) => {
-              const Icon = field.icon;
+          <div>
 
-              return (
-                <div className="employee-profile-field" key={field.label}>
-                  <label>{field.label}</label>
-                  <div className="employee-profile-readonly">
-                    <Icon size={17} />
-                    <span>{field.value || "Not provided"}</span>
-                  </div>
+            <h2>Address Information</h2>
+
+            <p>
+              Your current residential address
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div className="employee-profile-fields">
+
+          {/* Address */}
+          <div className="employee-profile-field full-width">
+
+            <label>
+              Address
+            </label>
+
+            <div className="employee-profile-readonly">
+
+              <MapPin size={17} />
+
+              <span>
+                {profile.address || "Not provided"}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          {/* City */}
+          <div className="employee-profile-field">
+
+            <label>
+              City
+            </label>
+
+            <div className="employee-profile-readonly">
+
+              <MapPin size={17} />
+
+              <span>
+                {profile.city || "Not provided"}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          {/* State */}
+          <div className="employee-profile-field">
+
+            <label>
+              State
+            </label>
+
+            <div className="employee-profile-readonly">
+
+              <MapPin size={17} />
+
+              <span>
+                {profile.state || "Not provided"}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          {/* Postal Code */}
+          <div className="employee-profile-field">
+
+            <label>
+              Postal Code
+            </label>
+
+            <div className="employee-profile-readonly">
+
+              <MapPin size={17} />
+
+              <span>
+                {profile.postalCode || "Not provided"}
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* EMPLOYMENT INFORMATION */}
+      <section className="employee-profile-card">
+
+        <div className="employee-profile-section-heading">
+
+          <div className="employee-profile-section-icon">
+            <BriefcaseBusiness size={19} />
+          </div>
+
+          <div>
+
+            <h2>Employment Information</h2>
+
+            <p>
+              Your company and job details
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div className="employee-profile-fields">
+
+          {employmentFields.map((field) => {
+
+            const Icon = field.icon;
+
+            return (
+              <div
+                className="employee-profile-field"
+                key={field.label}
+              >
+
+                <label>
+                  {field.label}
+                </label>
+
+                <div className="employee-profile-readonly">
+
+                  <Icon size={17} />
+
+                  <span>
+                    {field.value || "Not provided"}
+                  </span>
+
                 </div>
-              );
-            })}
-          </div>
 
-          <div className="employee-profile-readonly-note">
-            <ShieldCheck size={16} />
-            Employment details are managed by your company administrator.
-          </div>
-        </section>
+              </div>
+            );
 
-        {editing && (
-          <div className="employee-profile-bottom-actions">
-            <button
-              className="employee-profile-cancel-btn"
-              type="button"
-              onClick={handleCancel}
-            >
-              Cancel
-            </button>
+          })}
 
-            <button className="employee-profile-save-btn" type="submit">
-              <Save size={16} />
-              Save Changes
-            </button>
-          </div>
-        )}
-      </form>
+        </div>
+
+
+        <div className="employee-profile-readonly-note">
+
+          <ShieldCheck size={16} />
+
+          Employment details are managed by your company administrator.
+
+        </div>
+
+      </section>
+
     </section>
   );
 }
