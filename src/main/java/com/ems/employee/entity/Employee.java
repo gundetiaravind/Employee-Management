@@ -1,6 +1,5 @@
 package com.ems.employee.entity;
 
-import com.ems.company.entity.Company;
 import com.ems.user.entity.User;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -17,9 +16,6 @@ public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-//    @Column(name = "tenant_id", nullable = false)
-//    private Long tenantId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true)

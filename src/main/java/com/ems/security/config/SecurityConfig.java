@@ -137,7 +137,7 @@ public class SecurityConfig {
                 	    "/api/auth/resend-verification",
                 	    "/api/auth/forgot-password",
                 	    "/api/auth/reset-password",
-                        "/static/uploads/uploads/company-logos/**",
+                       // "/static/uploads/uploads/company-logos/**",
                 	    "/actuator/health",
                         "/uploads/**"
                 	).permitAll()
