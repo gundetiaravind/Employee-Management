@@ -1,91 +1,223 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Building2,
   Mail,
   Phone,
   MapPin,
   Globe,
-  Hash,
   Save,
   RotateCcw,
   CheckCircle2,
-  Copy,
 } from "lucide-react";
+const AUTH_KEY = "orgconnect-auth";
+import axiosInstance from "../../utils/axiosInstance";
 import "./CompanySettings.css";
-
-const initialCompany = {
-  name: "OrgConnect Technologies",
-  code: "ORG482916",
-  email: "contact@orgconnect.com",
-  phone: "9876543210",
-  website: "www.orgconnect.com",
-  industry: "Information Technology",
-  size: "51–200 Employees",
-  address: "Hitech City",
-  city: "Hyderabad",
-  state: "Telangana",
-  country: "India",
-  pin: "500081",
-  description:
-    "An organization focused on building technology solutions and providing a collaborative workplace.",
+// Read authenticated user
+  const user = (() => {
+    try {
+      return JSON.parse(
+        sessionStorage.getItem(AUTH_KEY) || "null"
+      );
+    } catch {
+      return null;
+    }
+  })();
+// const COMPANY_ID = 1;
+const COMPANY_ID = user?.companyId;
+const API = {
+  getSettings: `/api/company/settings?companyId=${COMPANY_ID}`,
+  updateSettings: `/api/company/settings?companyId=${COMPANY_ID}`,
 };
 
+const emptyCompany = {
+  companyName: "",
+  companyEmail: "",
+  contactNumber: "",
+  website: "",
+  industry: "",
+  companyType: "",
+  address: "",
+  city: "",
+  state: "",
+  country: "",
+  pinCode: "",
+};
+
+const getErrorMessage = (error) =>
+  error?.response?.data?.message ||
+  error?.response?.data?.error ||
+  error?.message ||
+  "Something went wrong. Please try again.";
+
+// Convert backend response into the frontend form structure.
+const mapCompanyResponse = (data) => ({
+  companyName: data.companyName || "",
+  companyEmail: data.companyEmail || "",
+  contactNumber: data.contactNumber || "",
+  website: data.website || "",
+  industry: data.industry || "",
+  companyType: data.companyType || "",
+  address: data.address || "",
+  city: data.city || "",
+  state: data.state || "",
+  country: data.country || "",
+  pinCode: data.pinCode || "",
+});
+
 function CompanySettings() {
-  const [company, setCompany] = useState(initialCompany);
+  const [company, setCompany] = useState(emptyCompany);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // GET: Load company settings
+  const fetchCompanySettings = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      setSuccessMessage("");
+
+      const response = await axiosInstance.get(API.getSettings);
+
+      const data = response.data?.company || response.data;
+
+      setCompany(mapCompanyResponse(data));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanySettings();
+  }, []);
 
   const updateField = (event) => {
     const { name, value } = event.target;
-    setCompany((current) => ({ ...current, [name]: value }));
+
+    setCompany((current) => ({
+      ...current,
+      [name]: value,
+    }));
+
     setSaved(false);
+    setSuccessMessage("");
+    setError("");
   };
 
-  const saveSettings = (event) => {
+  // PUT: Update company settings
+  const saveSettings = async (event) => {
     event.preventDefault();
-    setSaved(true);
-  };
 
-  const resetSettings = () => {
-    setCompany(initialCompany);
-    setSaved(false);
-  };
+    setError("");
+    setSuccessMessage("");
 
-  const copyCompanyCode = async () => {
+    const phone = company.contactNumber.trim();
+    const pin = company.pinCode.trim();
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (pin && !/^\d{6}$/.test(pin)) {
+      setError("Enter a valid 6-digit PIN code.");
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(company.code);
-      window.alert("Company code copied.");
-    } catch {
-      window.alert("Unable to copy the company code.");
+      setSaving(true);
+
+      // Use backend property names in the request.
+      const payload = {
+        companyName: company.companyName.trim(),
+        companyEmail: company.companyEmail.trim(),
+        contactNumber: phone,
+        website: company.website.trim() || null,
+        industry: company.industry.trim(),
+        companyType: company.companyType.trim(),
+        address: company.address.trim(),
+        city: company.city.trim(),
+        state: company.state.trim(),
+        country: company.country.trim(),
+        pinCode: pin,
+      };
+
+      const response = await axiosInstance.put(
+        API.updateSettings,
+        payload
+      );
+
+      const data = response.data?.company || response.data;
+
+      // Use the latest values returned by the backend.
+      setCompany(mapCompanyResponse(data));
+      setSaved(true);
+      setSuccessMessage("Company settings updated successfully.");
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setSaved(false);
+    } finally {
+      setSaving(false);
     }
   };
+
+  // Reset the form by fetching the latest saved backend values.
+  const resetSettings = () => {
+    fetchCompanySettings();
+    setSaved(false);
+    setSuccessMessage("");
+  };
+
+  if (loading) {
+    return (
+      <div className="company-settings-page">
+        <div className="company-settings-heading">
+          <div>
+            <span className="company-settings-eyebrow">
+              ORGANIZATION MANAGEMENT
+            </span>
+            <h1>Company Settings</h1>
+            <p>Loading company information...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="company-settings-page">
       <div className="company-settings-heading">
         <div>
-          <span className="company-settings-eyebrow">ORGANIZATION MANAGEMENT</span>
+          <span className="company-settings-eyebrow">
+            ORGANIZATION MANAGEMENT
+          </span>
           <h1>Company Settings</h1>
-          <p>Manage your organization information and company preferences.</p>
+          <p>
+            Manage your organization information and company preferences.
+          </p>
         </div>
       </div>
 
-      <div className="company-code-card">
-        <div className="company-code-icon">
-          <Hash size={22} />
+      {error && (
+        <div className="company-error-message" role="alert">
+          {error}
         </div>
-        <div className="company-code-info">
-          <span>YOUR COMPANY CODE</span>
-          <strong>{company.code}</strong>
-          <p>Share this code with employees who need to join your organization.</p>
+      )}
+
+      {successMessage && (
+        <div className="company-saved-message">
+          <CheckCircle2 size={17} />
+          {successMessage}
         </div>
-        <button className="company-copy-btn" onClick={copyCompanyCode}>
-          <Copy size={16} />
-          Copy Code
-        </button>
-      </div>
+      )}
 
       <form onSubmit={saveSettings}>
+        {/* Company Information */}
         <section className="company-settings-card">
           <div className="company-section-heading">
             <div className="company-section-icon">
@@ -101,9 +233,10 @@ function CompanySettings() {
             <label>
               Company Name *
               <input
-                name="name"
-                value={company.name}
+                name="companyName"
+                value={company.companyName}
                 onChange={updateField}
+                placeholder="Enter company name"
                 required
               />
             </label>
@@ -116,31 +249,27 @@ function CompanySettings() {
                 onChange={updateField}
                 required
               >
-                <option>Information Technology</option>
-                <option>Finance</option>
-                <option>Healthcare</option>
-                <option>Education</option>
-                <option>Manufacturing</option>
-                <option>Retail</option>
-                <option>Other</option>
+                <option value="">Select Industry</option>
+                <option value="Information Technology">
+                  Information Technology
+                </option>
+                <option value="Finance">Finance</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Education">Education</option>
+                <option value="Manufacturing">Manufacturing</option>
+                <option value="Retail">Retail</option>
+                <option value="Other">Other</option>
               </select>
             </label>
 
             <label>
-              Company Size *
-              <select
-                name="size"
-                value={company.size}
+              Company Type
+              <input
+                name="companyType"
+                value={company.companyType}
                 onChange={updateField}
-                required
-              >
-                <option>1–10 Employees</option>
-                <option>11–50 Employees</option>
-                <option>51–200 Employees</option>
-                <option>201–500 Employees</option>
-                <option>501–1000 Employees</option>
-                <option>1000+ Employees</option>
-              </select>
+                placeholder="Example: Private Limited"
+              />
             </label>
 
             <label>
@@ -148,27 +277,18 @@ function CompanySettings() {
               <div className="company-input-icon">
                 <Globe size={16} />
                 <input
+                  type="url"
                   name="website"
                   value={company.website}
                   onChange={updateField}
-                  placeholder="www.company.com"
+                  placeholder="https://company.com"
                 />
               </div>
-            </label>
-
-            <label className="company-full-width">
-              Company Description
-              <textarea
-                name="description"
-                value={company.description}
-                onChange={updateField}
-                rows={3}
-                placeholder="Describe your organization"
-              />
             </label>
           </div>
         </section>
 
+        {/* Contact Information */}
         <section className="company-settings-card">
           <div className="company-section-heading">
             <div className="company-section-icon">
@@ -187,9 +307,10 @@ function CompanySettings() {
                 <Mail size={16} />
                 <input
                   type="email"
-                  name="email"
-                  value={company.email}
+                  name="companyEmail"
+                  value={company.companyEmail}
                   onChange={updateField}
+                  placeholder="company@example.com"
                   required
                 />
               </div>
@@ -200,9 +321,11 @@ function CompanySettings() {
               <div className="company-input-icon">
                 <Phone size={16} />
                 <input
-                  name="phone"
-                  value={company.phone}
+                  type="tel"
+                  name="contactNumber"
+                  value={company.contactNumber}
                   onChange={updateField}
+                  placeholder="10-digit mobile number"
                   inputMode="numeric"
                   maxLength={10}
                   pattern="[6-9][0-9]{9}"
@@ -213,6 +336,7 @@ function CompanySettings() {
           </div>
         </section>
 
+        {/* Office Address */}
         <section className="company-settings-card">
           <div className="company-section-heading">
             <div className="company-section-icon">
@@ -231,6 +355,7 @@ function CompanySettings() {
                 name="address"
                 value={company.address}
                 onChange={updateField}
+                placeholder="Enter office address"
                 required
               />
             </label>
@@ -241,6 +366,7 @@ function CompanySettings() {
                 name="city"
                 value={company.city}
                 onChange={updateField}
+                placeholder="Enter city"
                 required
               />
             </label>
@@ -251,6 +377,7 @@ function CompanySettings() {
                 name="state"
                 value={company.state}
                 onChange={updateField}
+                placeholder="Enter state"
                 required
               />
             </label>
@@ -261,6 +388,7 @@ function CompanySettings() {
                 name="country"
                 value={company.country}
                 onChange={updateField}
+                placeholder="Enter country"
                 required
               />
             </label>
@@ -268,9 +396,10 @@ function CompanySettings() {
             <label>
               PIN Code *
               <input
-                name="pin"
-                value={company.pin}
+                name="pinCode"
+                value={company.pinCode}
                 onChange={updateField}
+                placeholder="6-digit PIN code"
                 inputMode="numeric"
                 maxLength={6}
                 pattern="[0-9]{6}"
@@ -280,6 +409,7 @@ function CompanySettings() {
           </div>
         </section>
 
+        {/* Form Actions */}
         <div className="company-settings-actions">
           {saved && (
             <span className="company-saved-message">
@@ -292,14 +422,19 @@ function CompanySettings() {
             type="button"
             className="company-reset-btn"
             onClick={resetSettings}
+            disabled={saving}
           >
             <RotateCcw size={16} />
             Reset
           </button>
 
-          <button type="submit" className="company-save-btn">
+          <button
+            type="submit"
+            className="company-save-btn"
+            disabled={saving}
+          >
             <Save size={17} />
-            Save Changes
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </form>

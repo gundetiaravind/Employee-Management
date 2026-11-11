@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+
 import {
   LayoutDashboard,
   Users,
@@ -14,59 +15,108 @@ import {
 } from "lucide-react";
 
 import { useTheme } from "../../context/ThemeContext";
+import companyService from "../../services/companyService";
 import "./OwnerDashboard.css";
 
 const AUTH_KEY = "orgconnect-auth";
-
-const navigation = [
-  {
-    label: "Dashboard",
-    path: "/owner/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Manage Admins",
-    path: "/owner/admins",
-    icon: Users,
-  },
-  {
-    label: "Manage Employees",
-    path: "/owner/employees",
-    icon: UserRound,
-  },
-  {
-    label: "Company Settings",
-    path: "/owner/company",
-    icon: Building2,
-  },
-  {
-    label: "My Profile",
-    path: "/owner/profile",
-    icon: UserRound,
-  },
-];
 
 export default function OwnerLayout() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [companyData, setCompanyData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const user = JSON.parse(
-    sessionStorage.getItem(AUTH_KEY) || "null"
-  );
+  // Read authenticated user
+  const user = (() => {
+    try {
+      return JSON.parse(
+        sessionStorage.getItem(AUTH_KEY) || "null"
+      );
+    } catch {
+      return null;
+    }
+  })();
 
-  const ownerName = user?.fullName || "Company Owner";
+  const ownerName = user?.fullName || user?.name || "Company Owner";
 
+  const companyId =
+    user?.companyId ??
+    user?.company?.id ??
+    user?.company?.companyId;
+
+  // Fetch company dashboard API
+  const fetchCompanyDashboard = useCallback(async () => {
+    if (!companyId) {
+      setError("Company ID is missing. Please login again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response =
+        await companyService.companyDashboard(companyId);
+
+      setCompanyData(response);
+    } catch (err) {
+      console.error("Company dashboard API error:", err);
+
+      setError(
+        err.response?.data?.message ||
+        "Unable to load company dashboard."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [companyId]);
+
+  useEffect(() => {
+    fetchCompanyDashboard();
+  }, [fetchCompanyDashboard]);
+
+  // Logout
   const handleLogout = () => {
     sessionStorage.removeItem(AUTH_KEY);
     navigate("/login", { replace: true });
   };
 
+  const navigation = [
+    {
+      label: "Dashboard",
+      path: "/owner/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      label: "Manage Admins",
+      path: "/owner/admins",
+      icon: Users,
+    },
+    {
+      label: "Manage Employees",
+      path: "/owner/employees",
+      icon: UserRound,
+    },
+    {
+      label: "Company Settings",
+      path: "/owner/company",
+      icon: Building2,
+    },
+    {
+      label: "My Profile",
+      path: "/owner/profile",
+      icon: UserRound,
+    },
+  ];
+
   return (
     <div className="owner-layout">
 
-      {/* HORIZONTAL NAVBAR */}
+      {/* HEADER */}
       <header className="owner-header">
         <div className="owner-header-container">
 
@@ -81,14 +131,18 @@ export default function OwnerLayout() {
             </div>
 
             <div className="owner-brand-text">
-              <h2>
+              {/* <h2>
                 Org<span>Connect</span>
-              </h2>
+              </h2> */}
+              {companyData && (
+                <h2>
+               {companyData.companyName}
+              </h2> )}
               <small>Owner Workspace</small>
             </div>
           </NavLink>
 
-          {/* NAVIGATION LINKS */}
+          {/* NAVIGATION */}
           <nav className={`owner-nav ${menuOpen ? "open" : ""}`}>
             {navigation.map(({ label, path, icon: Icon }) => (
               <NavLink
@@ -105,7 +159,6 @@ export default function OwnerLayout() {
               </NavLink>
             ))}
 
-            {/* MOBILE LOGOUT */}
             <button
               className="owner-mobile-logout"
               onClick={handleLogout}
@@ -115,7 +168,7 @@ export default function OwnerLayout() {
             </button>
           </nav>
 
-          {/* RIGHT SIDE ACTIONS */}
+          {/* HEADER ACTIONS */}
           <div className="owner-header-actions">
 
             <button
@@ -131,13 +184,11 @@ export default function OwnerLayout() {
               )}
             </button>
 
-            {/* AUTHENTICATED OWNER */}
             <div className="owner-user-info">
               <UserRound size={18} />
               <span>{ownerName}</span>
             </div>
 
-            {/* DESKTOP LOGOUT */}
             <button
               className="owner-logout"
               onClick={handleLogout}
@@ -146,7 +197,6 @@ export default function OwnerLayout() {
               <span>Sign Out</span>
             </button>
 
-            {/* MOBILE MENU BUTTON */}
             <button
               className="owner-mobile-menu"
               onClick={() => setMenuOpen((previous) => !previous)}
@@ -160,13 +210,54 @@ export default function OwnerLayout() {
         </div>
       </header>
 
-      {/* DASHBOARD CONTENT */}
+      {/* COMPANY INFORMATION */}
+      {/* {companyData && (
+        <div className="owner-company-bar">
+          <div>
+            <Building2 size={17} />
+
+            <strong>{companyData.companyName}</strong>
+
+            <span className="company-status">
+              {companyData.organizationStatus}
+            </span>
+          </div>
+
+          <span>
+            {companyData.accountType} Workspace
+          </span>
+        </div>
+      )} */}
+
+      {/* PAGE CONTENT */}
       <main className="owner-main">
         <div className="owner-page-content">
-          <Outlet />
+
+          {loading ? (
+            <div className="owner-loading">
+              Loading company dashboard...
+            </div>
+          ) : error ? (
+            <div className="owner-error">
+              <p>{error}</p>
+
+              <button onClick={fetchCompanyDashboard}>
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <Outlet
+              context={{
+                companyData,
+                loading,
+                error,
+                refreshCompanyDashboard: fetchCompanyDashboard,
+              }}
+            />
+          )}
+
         </div>
       </main>
-
     </div>
   );
 }

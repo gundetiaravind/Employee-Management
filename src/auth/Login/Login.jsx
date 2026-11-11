@@ -88,15 +88,18 @@ export default function Login() {
       if (!dashboard) {
         throw new Error("Your account role is not recognized.");
       }
-
+    
       const authenticatedUser = {
         accessToken: data.accessToken,
         tokenType: data.tokenType || "Bearer",
-        userId: data.userId,
+        
+        userId: data.id,
+        companyId : data.companyId,
         fullName: data.fullName,
         email: data.email,
         role,
       };
+      //console.log(data);
 
       sessionStorage.setItem(
         AUTH_KEY,
