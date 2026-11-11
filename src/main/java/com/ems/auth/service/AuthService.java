@@ -17,3 +17,4 @@ public interface AuthService {
   // Change currently logged-in user's password
   void changePassword(ChangePasswordRequest request);
 }
+

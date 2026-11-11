@@ -173,7 +173,7 @@ public class CompanyRegistrationServiceImpl
 
         try {
             Path directory = Paths.get(
-                    "uploads",
+                    "static/uploads/uploads",
                     "company-logos"
             ).toAbsolutePath().normalize();
 
@@ -191,7 +191,7 @@ public class CompanyRegistrationServiceImpl
 
             Files.copy(logo.getInputStream(), destination);
 
-            return "/uploads/company-logos/" + fileName;
+            return "/static/uploads/uploads/company-logos/" + fileName;
 
         } catch (IOException exception) {
             throw new ResponseStatusException(

@@ -13,7 +13,7 @@ public class CompanyLogoConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
 
         String directory = Paths.get(
-                "uploads",
+                "static/uploads/uploads",
                 "company-logos"
         ).toAbsolutePath().normalize().toUri().toString();
 
@@ -21,7 +21,7 @@ public class CompanyLogoConfig implements WebMvcConfigurer {
             directory += "/";
         }
 
-        registry.addResourceHandler("/uploads/company-logos/**")
+        registry.addResourceHandler("/static/uploads/uploads/company-logos/**")
                 .addResourceLocations(directory);
     }
 }

@@ -137,8 +137,9 @@ public class SecurityConfig {
                 	    "/api/auth/resend-verification",
                 	    "/api/auth/forgot-password",
                 	    "/api/auth/reset-password",
-                	    "/uploads/company-logos/**",
-                	    "/actuator/health"
+                        "/static/uploads/uploads/company-logos/**",
+                	    "/actuator/health",
+                        "/uploads/**"
                 	).permitAll()
 
                 // Platform Manager APIs

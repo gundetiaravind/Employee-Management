@@ -39,6 +39,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
+        //for temporary file acess i will remove later
+            String path = request.getServletPath();
+
+            if (path.startsWith("/static/uploads/uploads/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+
         final String authorizationHeader =
                 request.getHeader("Authorization");
 
