@@ -26,125 +26,112 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-  private final AuthenticationManager authenticationManager;
-  private final CustomUserDetailsService userDetailsService;
-  private final UserRepository userRepository;
-  private final JwtService jwtService;
-  private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final CustomUserDetailsService userDetailsService;
+    private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
-  public AuthServiceImpl(
-      AuthenticationManager authenticationManager,
-      CustomUserDetailsService userDetailsService,
-      UserRepository userRepository,
-      JwtService jwtService,
-      PasswordEncoder passwordEncoder) {
+    public AuthServiceImpl(
+            AuthenticationManager authenticationManager,
+            CustomUserDetailsService userDetailsService,
+            UserRepository userRepository,
+            JwtService jwtService,
+            PasswordEncoder passwordEncoder) {
 
-    this.authenticationManager = authenticationManager;
-    this.userDetailsService = userDetailsService;
-    this.userRepository = userRepository;
-    this.jwtService = jwtService;
-    this.passwordEncoder = passwordEncoder;
-  }
-
-  // Login user
-  @Override
-  public LoginResponse login(LoginRequest request) {
-
-    // Authenticate email and password
-    authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(
-            request.getEmail(),
-            request.getPassword()));
-
-    // Load authenticated user's security details
-    UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-
-    // Fetch user information from database
-    User user = userRepository.findByEmail(request.getEmail())
-        .orElseThrow(() -> new RuntimeException("User not found"));
-
-    // Generate JWT token
-    String token = jwtService.generateToken(userDetails);
-
-    // Return login response
-    return LoginResponse.builder()
-        .accessToken(token)
-        .tokenType("Bearer")
-        .userId(user.getId())
-        .fullName(user.getFullName())
-        .email(user.getEmail())
-        .role(user.getRole().name())
-        .build();
-  }
-
-  // Get currently logged-in user
-  @Override
-  public CurrentUserResponse getCurrentUser() {
-
-    // Get authentication information from Spring Security
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-    // Get currently authenticated user's email
-    String email = authentication.getName();
-
-    // Fetch user from database
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new RuntimeException("User not found"));
-
-    // Return current user details
-    return CurrentUserResponse.builder()
-        .userId(user.getId())
-        .fullName(user.getFullName())
-        .email(user.getEmail())
-        .role(user.getRole().name())
-        .build();
-  }
-
-  // Change currently logged-in user's password
-  @Override
-  @Transactional
-  public void changePassword(ChangePasswordRequest request) {
-
-    // Get currently authenticated user
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-    String email = authentication.getName();
-
-    // Find user in database
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new RuntimeException("User not found"));
-
-    // Verify current password
-    if (!passwordEncoder.matches(
-        request.getCurrentPassword(),
-        user.getPassword())) {
-
-      throw new IllegalArgumentException(
-          "Current password is incorrect");
+        this.authenticationManager = authenticationManager;
+        this.userDetailsService = userDetailsService;
+        this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // Check new password and confirmation
-    if (!request.getNewPassword()
-        .equals(request.getConfirmPassword())) {
+    @Override
+    public LoginResponse login(LoginRequest request) {
 
-      throw new IllegalArgumentException(
-          "New password and confirm password do not match");
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String token = jwtService.generateToken(userDetails);
+
+        // Company ID is available for users linked to a company.
+        Long companyId = user.getCompany() != null
+                ? user.getCompany().getId()
+                : null;
+
+        return LoginResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .userId(user.getId())
+                .companyId(companyId)
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
     }
 
-    // Prevent reusing the current password
-    if (passwordEncoder.matches(
-        request.getNewPassword(),
-        user.getPassword())) {
+    @Override
+    public CurrentUserResponse getCurrentUser() {
 
-      throw new IllegalArgumentException(
-          "New password must be different from current password");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return CurrentUserResponse.builder()
+                .userId(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
     }
 
-    // Encode the new password using BCrypt
-    user.setPassword(
-        passwordEncoder.encode(request.getNewPassword()));
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
 
-    // Save updated password
-    userRepository.save(user);
-  }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(
+                request.getCurrentPassword(),
+                user.getPassword())) {
+
+            throw new IllegalArgumentException(
+                    "Current password is incorrect");
+        }
+
+        if (!request.getNewPassword()
+                .equals(request.getConfirmPassword())) {
+
+            throw new IllegalArgumentException(
+                    "New password and confirm password do not match");
+        }
+
+        if (passwordEncoder.matches(
+                request.getNewPassword(),
+                user.getPassword())) {
+
+            throw new IllegalArgumentException(
+                    "New password must be different from current password");
+        }
+
+        user.setPassword(
+                passwordEncoder.encode(request.getNewPassword()));
+
+        userRepository.save(user);
+    }
 }

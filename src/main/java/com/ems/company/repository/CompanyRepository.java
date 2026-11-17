@@ -1,6 +1,8 @@
+
 package com.ems.company.repository;
 
 import com.ems.company.entity.Company;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +16,6 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
   boolean existsByCompanyEmail(String companyEmail);
 
   boolean existsByCompanyCode(String companyCode);
+
+  boolean existsByRegistrationNumber(String registrationNumber);
 }

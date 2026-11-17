@@ -1,3 +1,4 @@
+
 package com.ems.employee.entity;
 
 import com.ems.user.entity.User;
@@ -7,7 +8,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
-@Entity
+@Entity(name = "Employee")
 @Table(name = "employees")
 @Getter
 @Setter
@@ -51,7 +52,6 @@ public class Employee {
     @Column(name = "postal_code", length = 10)
     private String postalCode;
 
-
     @Column(length = 100)
     private String department;
 
@@ -67,10 +67,4 @@ public class Employee {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporting_manager_id")
     private Employee reportingManager;
-
-//    @Enumerated(EnumType.STRING)
-//    @Column(name = "employee_status", nullable = false)
-//    private EmployeeStatus employeeStatus;
-
-
 }

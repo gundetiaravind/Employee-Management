@@ -56,52 +56,48 @@ public class CompanyRegistrationServiceImpl
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Password and confirm password do not match"
-            );
+                    "Password and confirm password do not match");
         }
 
         if (companyRepository.existsByCompanyEmail(email)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "This email address is already registered"
-            );
+                    "This email address is already registered");
         }
 
-        if (companyRepository.existsByRegistrationNumber(
-                request.getRegistrationNumber().trim())) {
+        String registrationNumber = request.getRegistrationNumber().trim();
 
+        if (companyRepository.existsByRegistrationNumber(registrationNumber)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "This registration number is already registered"
-            );
+                    "This registration number is already registered");
         }
 
         // Save company logo.
         String logoPath = saveCompanyLogo(request.getCompanyLogo());
 
         // Create company.
-        Company company = Company.builder()
-                .companyName(request.getCompanyName().trim())
-                .companyEmail(email)
-                .registrationNumber(
-                        request.getRegistrationNumber().trim())
-                .companyType(request.getCompanyType().trim())
-                .industry(request.getIndustry().trim())
-                .companyPhone(request.getCompanyPhone().trim())
-                .alternatePhone(cleanOptional(request.getAlternatePhone()))
-                .companyWebsite(cleanOptional(request.getCompanyWebsite()))
-                .country(request.getCountry().trim())
-                .state(request.getState().trim())
-                .city(request.getCity().trim())
-                .pinCode(request.getPinCode().trim())
-                .companyAddress(request.getCompanyAddress().trim())
-                .logoPath(logoPath)
-                .companyStatus("PENDING_VERIFICATION")
-                .build();
+        Company company = new Company();
+
+        company.setCompanyName(request.getCompanyName().trim());
+        company.setCompanyEmail(email);
+        company.setRegistrationNumber(registrationNumber);
+        company.setCompanyType(request.getCompanyType().trim());
+        company.setIndustry(request.getIndustry().trim());
+        company.setCompanyPhone(request.getCompanyPhone().trim());
+        company.setAlternatePhone(cleanOptional(request.getAlternatePhone()));
+        company.setCompanyWebsite(cleanOptional(request.getCompanyWebsite()));
+        company.setCountry(request.getCountry().trim());
+        company.setState(request.getState().trim());
+        company.setCity(request.getCity().trim());
+        company.setPinCode(request.getPinCode().trim());
+        company.setCompanyAddress(request.getCompanyAddress().trim());
+        company.setLogoPath(logoPath);
+        company.setCompanyStatus("PENDING_VERIFICATION");
 
         Company savedCompany = companyRepository.save(company);
 
-        // Create Owner account.
+        // Create company owner account.
         User savedOwner = userAccountService.createUserAccount(
                 request.getOwnerName().trim(),
                 email,
@@ -110,28 +106,28 @@ public class CompanyRegistrationServiceImpl
                 Role.COMPANY_OWNER,
                 UserStatus.PENDING_VERIFICATION,
                 false,
-                savedCompany
-        );
+                savedCompany);
 
-        // Generate OTP and send Owner verification email.
+        // Generate and send owner verification OTP.
         emailVerificationService.sendOwnerVerificationOtp(
-                savedOwner.getId()
-        );
+                savedOwner.getId());
 
-        // Return registration response.
-        return CompanyRegistrationResponse.builder()
-                .companyId(savedCompany.getId())
-                .companyName(savedCompany.getCompanyName())
-                .ownerName(savedOwner.getFullName())
-                .ownerEmail(savedOwner.getEmail())
-                .ownerMobileNumber(savedOwner.getMobileNumber())
-                .logoPath(savedCompany.getLogoPath())
-                .companyStatus(savedCompany.getCompanyStatus())
-                .message(
-                        "Company registration submitted successfully. "
-                        + "Email verification OTP has been sent."
-                )
-                .build();
+        // Prepare response.
+        CompanyRegistrationResponse response = new CompanyRegistrationResponse();
+
+        response.setCompanyId(savedCompany.getId());
+        response.setCompanyName(savedCompany.getCompanyName());
+        response.setOwnerName(savedOwner.getFullName());
+        response.setOwnerEmail(savedOwner.getEmail());
+        response.setOwnerMobileNumber(savedOwner.getMobileNumber());
+        response.setLogoPath(savedCompany.getLogoPath());
+        response.setCompanyStatus(savedCompany.getCompanyStatus());
+
+        response.setMessage(
+                "Company registration submitted successfully. "
+                        + "Email verification OTP has been sent.");
+
+        return response;
     }
 
     private String cleanOptional(String value) {
@@ -151,8 +147,7 @@ public class CompanyRegistrationServiceImpl
         if (logo.getSize() > 2 * 1024 * 1024) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Company logo must not exceed 2 MB"
-            );
+                    "Company logo must not exceed 2 MB");
         }
 
         String contentType = logo.getContentType();
@@ -167,15 +162,13 @@ public class CompanyRegistrationServiceImpl
         } else {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Only PNG, JPG and WEBP logos are allowed"
-            );
+                    "Only PNG, JPG and WEBP logos are allowed");
         }
 
         try {
             Path directory = Paths.get(
                     "static/uploads/uploads",
-                    "company-logos"
-            ).toAbsolutePath().normalize();
+                    "company-logos").toAbsolutePath().normalize();
 
             Files.createDirectories(directory);
 
@@ -185,8 +178,7 @@ public class CompanyRegistrationServiceImpl
             if (!destination.startsWith(directory)) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
-                        "Invalid logo file"
-                );
+                        "Invalid logo file");
             }
 
             Files.copy(logo.getInputStream(), destination);
@@ -197,8 +189,7 @@ public class CompanyRegistrationServiceImpl
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Unable to save company logo",
-                    exception
-            );
+                    exception);
         }
     }
 }
