@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import {
   Search,
@@ -12,35 +11,31 @@ import {
   UserX,
   RefreshCw,
 } from "lucide-react";
-const AUTH_KEY = "orgconnect-auth";
+
 import axiosInstance from "../../utils/axiosInstance";
 import "./ManageEmployees.css";
 
-// Read authenticated user
-  const user = (() => {
-    try {
-      return JSON.parse(
-        sessionStorage.getItem(AUTH_KEY) || "null"
-      );
-    } catch {
-      return null;
-    }
-  })();
+const getCompanyId = () => {
+  try {
+    const user = JSON.parse(
+      sessionStorage.getItem("orgconnect-auth") || "null",
+    );
 
-// const COMPANY_ID = 1;
-console.log(user);
-const COMPANY_ID = user?.companyId;
-// console.log(COMPANY_ID);
-// alert(COMPANY_ID);
-
-//alert(sessionStorage.getItem(companyId));
-//return false;
-const API = {
-  employees: `/api/company-owner/employees?companyId=${COMPANY_ID}`,
-  create: `/api/company-owner/employees?companyId=${COMPANY_ID}`,
-  update: (id) => `/api/company/employees/${id}?companyId=${COMPANY_ID}`,
-  delete: (id) => `/api/company/employees/${id}?companyId=${COMPANY_ID}`,
+    return (
+      user?.companyId ?? user?.company?.id ?? user?.company?.companyId ?? null
+    );
+  } catch {
+    return null;
+  }
 };
+
+const getErrorMessage = (error) =>
+  error?.response?.data?.message ||
+  error?.response?.data?.error ||
+  error?.message ||
+  "Something went wrong. Please try again.";
+
+const displayValue = (value) => value || "-";
 
 const emptyForm = {
   code: "",
@@ -53,14 +48,6 @@ const emptyForm = {
   joined: "",
   status: "Active",
 };
-
-const getErrorMessage = (error) =>
-  error?.response?.data?.message ||
-  error?.response?.data?.error ||
-  error?.message ||
-  "Something went wrong. Please try again.";
-
-const displayValue = (value) => value || "-";
 
 function ManageEmployees() {
   const [employees, setEmployees] = useState([]);
@@ -78,13 +65,39 @@ function ManageEmployees() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
-  // GET: Fetch employees from backend
+  const getCompanyIdOrThrow = () => {
+    const companyId = getCompanyId();
+
+    if (companyId === null || companyId === undefined || companyId === "") {
+      throw new Error("Company ID is missing. Please log in again.");
+    }
+
+    return companyId;
+  };
+
+  const getEmployeeApiUrl = (id) => {
+    const companyId = getCompanyIdOrThrow();
+
+    const baseUrl =
+      id === undefined
+        ? "/api/company-owner/employees"
+        : `/api/company/employees/${id}`;
+
+    return {
+      url: baseUrl,
+      params: { companyId },
+    };
+  };
+
+  // GET: Fetch employees
   const fetchEmployees = async () => {
     try {
       setLoading(true);
       setApiError("");
 
-      const response = await axiosInstance.get(API.employees);
+      const { url, params } = getEmployeeApiUrl();
+
+      const response = await axiosInstance.get(url, { params });
 
       const data = Array.isArray(response.data)
         ? response.data
@@ -103,15 +116,12 @@ function ManageEmployees() {
   }, []);
 
   const departments = useMemo(
-    () =>
-      [
-        ...new Set(
-          employees
-            .map((employee) => employee.department)
-            .filter(Boolean)
-        ),
-      ],
-    [employees]
+    () => [
+      ...new Set(
+        employees.map((employee) => employee.department).filter(Boolean),
+      ),
+    ],
+    [employees],
   );
 
   const filteredEmployees = useMemo(() => {
@@ -129,26 +139,27 @@ function ManageEmployees() {
       ];
 
       const matchesSearch = searchableValues.some((value) =>
-        String(value || "").toLowerCase().includes(query)
+        String(value || "")
+          .toLowerCase()
+          .includes(query),
       );
 
       const matchesStatus =
         statusFilter === "All" || employee.status === statusFilter;
 
       const matchesDepartment =
-        departmentFilter === "All" ||
-        employee.department === departmentFilter;
+        departmentFilter === "All" || employee.department === departmentFilter;
 
       return matchesSearch && matchesStatus && matchesDepartment;
     });
   }, [employees, search, statusFilter, departmentFilter]);
 
   const activeCount = employees.filter(
-    (employee) => employee.status === "Active"
+    (employee) => employee.status === "Active",
   ).length;
 
   const inactiveCount = employees.filter(
-    (employee) => employee.status === "Inactive"
+    (employee) => employee.status === "Inactive",
   ).length;
 
   const openAdd = () => {
@@ -210,7 +221,7 @@ function ManageEmployees() {
     const duplicateCode = employees.some(
       (employee) =>
         String(employee.code || "").toLowerCase() === code.toLowerCase() &&
-        employee.id !== selectedEmployee?.id
+        employee.id !== selectedEmployee?.id,
     );
 
     if (duplicateCode) {
@@ -221,7 +232,7 @@ function ManageEmployees() {
     const duplicateEmail = employees.some(
       (employee) =>
         String(employee.email || "").toLowerCase() === email.toLowerCase() &&
-        employee.id !== selectedEmployee?.id
+        employee.id !== selectedEmployee?.id,
     );
 
     if (duplicateEmail) {
@@ -238,19 +249,22 @@ function ManageEmployees() {
       setSaving(true);
 
       if (modal === "add") {
-        // Your POST API currently accepts these three fields.
+        const { url, params } = getEmployeeApiUrl();
+
         const payload = {
           code,
           name,
           email,
         };
 
-        await axiosInstance.post(API.create, payload);
+        await axiosInstance.post(url, payload, { params });
       } else if (modal === "edit") {
         if (!selectedEmployee?.id) {
           setFormError("Employee ID is missing.");
           return;
         }
+
+        const { url, params } = getEmployeeApiUrl(selectedEmployee.id);
 
         const payload = {
           code,
@@ -264,10 +278,7 @@ function ManageEmployees() {
           status: form.status,
         };
 
-        await axiosInstance.put(
-          API.update(selectedEmployee.id),
-          payload
-        );
+        await axiosInstance.put(url, payload, { params });
       }
 
       setModal(null);
@@ -282,10 +293,10 @@ function ManageEmployees() {
     }
   };
 
-  // DELETE: Backend deactivates employee instead of permanently deleting
+  // DELETE: Deactivate employee
   const deleteEmployee = async (employee) => {
     const confirmed = window.confirm(
-      `Are you sure you want to deactivate ${employee.name}?`
+      `Are you sure you want to deactivate ${employee.name}?`,
     );
 
     if (!confirmed) return;
@@ -294,15 +305,14 @@ function ManageEmployees() {
       setDeletingId(employee.id);
       setApiError("");
 
-      await axiosInstance.delete(API.delete(employee.id));
+      const { url, params } = getEmployeeApiUrl(employee.id);
 
-      // Reflect the deactivation in the UI.
+      await axiosInstance.delete(url, { params });
+
       setEmployees((current) =>
         current.map((item) =>
-          item.id === employee.id
-            ? { ...item, status: "Inactive" }
-            : item
-        )
+          item.id === employee.id ? { ...item, status: "Inactive" } : item,
+        ),
       );
 
       if (selectedEmployee?.id === employee.id) {
@@ -336,13 +346,9 @@ function ManageEmployees() {
     <div className="manage-employees-page">
       <div className="employees-heading">
         <div>
-          <span className="employees-eyebrow">
-            ORGANIZATION MANAGEMENT
-          </span>
+          <span className="employees-eyebrow">ORGANIZATION MANAGEMENT</span>
           <h1>Manage Employees</h1>
-          <p>
-            View and manage employee information in your organization.
-          </p>
+          <p>View and manage employee information in your organization.</p>
         </div>
 
         <div className="employees-heading-actions">
@@ -441,9 +447,7 @@ function ManageEmployees() {
 
             <select
               value={departmentFilter}
-              onChange={(event) =>
-                setDepartmentFilter(event.target.value)
-              }
+              onChange={(event) => setDepartmentFilter(event.target.value)}
               aria-label="Filter by department"
             >
               <option value="All">All Departments</option>
@@ -484,9 +488,7 @@ function ManageEmployees() {
               {loading ? (
                 <tr>
                   <td colSpan="7">
-                    <div className="employees-empty">
-                      Loading employees...
-                    </div>
+                    <div className="employees-empty">Loading employees...</div>
                   </td>
                 </tr>
               ) : filteredEmployees.length > 0 ? (
@@ -495,9 +497,7 @@ function ManageEmployees() {
                     <td>
                       <div className="employee-person">
                         <div className="employee-avatar">
-                          {(employee.name || "E")
-                            .charAt(0)
-                            .toUpperCase()}
+                          {(employee.name || "E").charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <strong>{displayValue(employee.name)}</strong>
@@ -563,9 +563,7 @@ function ManageEmployees() {
                     <div className="employees-empty">
                       <Users size={30} />
                       <strong>No employees found</strong>
-                      <span>
-                        Try another search or add a new employee.
-                      </span>
+                      <span>Try another search or add a new employee.</span>
                     </div>
                   </td>
                 </tr>
@@ -595,8 +593,8 @@ function ManageEmployees() {
                   {modal === "add"
                     ? "Add New Employee"
                     : modal === "edit"
-                    ? "Edit Employee"
-                    : "Employee Details"}
+                      ? "Edit Employee"
+                      : "Employee Details"}
                 </h2>
                 <p>
                   {modal === "view"
@@ -618,9 +616,7 @@ function ManageEmployees() {
             {modal === "view" && selectedEmployee ? (
               <div className="employee-details">
                 <div className="employee-details-avatar">
-                  {(selectedEmployee.name || "E")
-                    .charAt(0)
-                    .toUpperCase()}
+                  {(selectedEmployee.name || "E").charAt(0).toUpperCase()}
                 </div>
 
                 <h3>{displayValue(selectedEmployee.name)}</h3>
@@ -646,7 +642,9 @@ function ManageEmployees() {
                   </div>
                   <div>
                     <span>Designation</span>
-                    <strong>{displayValue(selectedEmployee.designation)}</strong>
+                    <strong>
+                      {displayValue(selectedEmployee.designation)}
+                    </strong>
                   </div>
                   <div>
                     <span>Reporting Manager</span>
@@ -664,8 +662,7 @@ function ManageEmployees() {
                     <span>Date of Joining</span>
                     <strong>
                       {formatDate(
-                        selectedEmployee.joined ||
-                          selectedEmployee.createdAt
+                        selectedEmployee.joined || selectedEmployee.createdAt,
                       )}
                     </strong>
                   </div>
@@ -786,8 +783,8 @@ function ManageEmployees() {
 
                 {modal === "add" && (
                   <p className="employee-form-hint">
-                    Additional employee details can be filled in after
-                    creating the employee using Edit.
+                    Additional employee details can be filled in after creating
+                    the employee using Edit.
                   </p>
                 )}
 
@@ -813,8 +810,8 @@ function ManageEmployees() {
                     {saving
                       ? "Saving..."
                       : modal === "add"
-                      ? "Add Employee"
-                      : "Save Changes"}
+                        ? "Add Employee"
+                        : "Save Changes"}
                   </button>
                 </div>
               </form>

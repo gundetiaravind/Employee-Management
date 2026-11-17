@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -40,7 +39,6 @@ export default function Login() {
       ...previous,
       [e.target.name]: e.target.value,
     }));
-
     setError("");
   };
 
@@ -71,9 +69,7 @@ export default function Login() {
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-          data.error ||
-          "Invalid email or password."
+          data.message || data.error || "Invalid email or password.",
         );
       }
 
@@ -81,37 +77,41 @@ export default function Login() {
         throw new Error("Authentication token was not received.");
       }
 
-      const role = String(data.role || "").replace(/^ROLE_/, "");
+      const role = String(data.role || "")
+        .replace(/^ROLE_/, "")
+        .toUpperCase();
 
       const dashboard = ROLE_ROUTES[role];
 
       if (!dashboard) {
         throw new Error("Your account role is not recognized.");
       }
-    
+
       const authenticatedUser = {
         accessToken: data.accessToken,
         tokenType: data.tokenType || "Bearer",
-        
-        userId: data.id,
-        companyId : data.companyId,
+        userId: data.userId,
+        companyId: data.companyId ?? null,
         fullName: data.fullName,
         email: data.email,
         role,
       };
-      //console.log(data);
 
-      sessionStorage.setItem(
-        AUTH_KEY,
-        JSON.stringify(authenticatedUser)
-      );
+      if (
+        (role === "COMPANY_OWNER" || role === "OWNER") &&
+        !authenticatedUser.companyId
+      ) {
+        throw new Error(
+          "Company ID was not received from the backend. Please check your login response.",
+        );
+      }
+
+      sessionStorage.setItem(AUTH_KEY, JSON.stringify(authenticatedUser));
 
       navigate(dashboard, { replace: true });
-
     } catch (err) {
       setError(
-        err.message ||
-        "Unable to connect to the server. Please try again."
+        err.message || "Unable to connect to the server. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -183,18 +183,10 @@ export default function Login() {
               <button
                 type="button"
                 className="password-toggle"
-                onClick={() =>
-                  setShowPassword((previous) => !previous)
-                }
-                aria-label={
-                  showPassword ? "Hide password" : "Show password"
-                }
+                onClick={() => setShowPassword((previous) => !previous)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? (
-                  <EyeOff size={19} />
-                ) : (
-                  <Eye size={19} />
-                )}
+                {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
               </button>
             </div>
 
@@ -221,26 +213,19 @@ export default function Login() {
               </p>
             )}
 
-            <button
-              type="submit"
-              className="auth-submit"
-              disabled={loading}
-            >
+            <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? "Signing In..." : "Sign In"}
-
               {!loading && <ArrowRight size={18} />}
             </button>
           </form>
 
           <div className="auth-switch">
-            Don't have an account?{" "}
-            <Link to="/register">Create account</Link>
+            Don't have an account? <Link to="/register">Create account</Link>
           </div>
         </div>
 
         <p className="auth-copyright">
-          © {new Date().getFullYear()} OrgConnect.
-          All rights reserved.
+          © {new Date().getFullYear()} OrgConnect. All rights reserved.
         </p>
       </div>
     </div>

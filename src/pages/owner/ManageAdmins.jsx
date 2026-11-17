@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Search,
@@ -14,23 +13,24 @@ import {
   UserRound,
   RefreshCw,
 } from "lucide-react";
-const AUTH_KEY = "orgconnect-auth";
+
 import axiosInstance from "../../utils/axiosInstance";
 import "./ManageAdmins.css";
-// Read authenticated user
-  const user = (() => {
-    try {
-      return JSON.parse(
-        sessionStorage.getItem(AUTH_KEY) || "null"
-      );
-    } catch {
-      return null;
-    }
-  })();
-// const COMPANY_ID = 1;
-const COMPANY_ID = user?.companyId;
-alert(COMPANY_ID);
-//return false;
+
+const getCompanyId = () => {
+  try {
+    const user = JSON.parse(
+      sessionStorage.getItem("orgconnect-auth") || "null",
+    );
+
+    return (
+      user?.companyId ?? user?.company?.id ?? user?.company?.companyId ?? null
+    );
+  } catch {
+    return null;
+  }
+};
+
 const emptyForm = {
   name: "",
   email: "",
@@ -69,15 +69,29 @@ function ManageAdmins() {
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
 
-  // GET: Fetch Admins
+  const getCompanyIdOrThrow = () => {
+    const companyId = getCompanyId();
+
+    if (companyId === null || companyId === undefined || companyId === "") {
+      throw new Error(
+        "Company ID is missing. Please sign out and log in again.",
+      );
+    }
+
+    return companyId;
+  };
+
+  // GET: Fetch administrators
   const fetchAdmins = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await axiosInstance.get(
-        `/api/company-owner/admins?companyId=${COMPANY_ID}`
-      );
+      const companyId = getCompanyIdOrThrow();
+
+      const response = await axiosInstance.get(`/api/company-owner/admins`, {
+        params: { companyId },
+      });
 
       setAdmins(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
@@ -85,8 +99,9 @@ function ManageAdmins() {
 
       setError(
         err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Unable to load administrators."
+          err.response?.data?.error ||
+          err.message ||
+          "Unable to load administrators.",
       );
     } finally {
       setLoading(false);
@@ -97,7 +112,6 @@ function ManageAdmins() {
     fetchAdmins();
   }, [fetchAdmins]);
 
-  // Search and Filter
   const filteredAdmins = useMemo(() => {
     return admins.filter((admin) => {
       const query = search.trim().toLowerCase();
@@ -110,23 +124,20 @@ function ManageAdmins() {
 
       const matchesStatus =
         statusFilter === "All" ||
-        (admin.status || "").toLowerCase() ===
-          statusFilter.toLowerCase();
+        (admin.status || "").toLowerCase() === statusFilter.toLowerCase();
 
       return matchesSearch && matchesStatus;
     });
   }, [admins, search, statusFilter]);
 
-  // Summary Counts
   const activeCount = admins.filter(
-    (admin) => (admin.status || "").toLowerCase() === "active"
+    (admin) => (admin.status || "").toLowerCase() === "active",
   ).length;
 
   const inactiveCount = admins.filter(
-    (admin) => (admin.status || "").toLowerCase() === "inactive"
+    (admin) => (admin.status || "").toLowerCase() === "inactive",
   ).length;
 
-  // Close Modal
   const closeModal = () => {
     setModal(null);
     setSelectedAdmin(null);
@@ -134,7 +145,6 @@ function ManageAdmins() {
     setFormError("");
   };
 
-  // Open Add Modal
   const openAdd = () => {
     setSelectedAdmin(null);
     setForm(emptyForm);
@@ -142,13 +152,11 @@ function ManageAdmins() {
     setModal("add");
   };
 
-  // Open View Modal
   const openView = (admin) => {
     setSelectedAdmin(admin);
     setModal("view");
   };
 
-  // Open Edit Modal
   const openEdit = (admin) => {
     setSelectedAdmin(admin);
 
@@ -164,7 +172,6 @@ function ManageAdmins() {
     setModal("edit");
   };
 
-  // Update Form Fields
   const updateField = (event) => {
     const { name, value } = event.target;
 
@@ -174,10 +181,19 @@ function ManageAdmins() {
     }));
   };
 
-  // POST / PUT: Add or Update Admin
+  // POST / PUT: Add or update administrator
   const saveAdmin = async (event) => {
     event.preventDefault();
     setFormError("");
+
+    let companyId;
+
+    try {
+      companyId = getCompanyIdOrThrow();
+    } catch (err) {
+      setFormError(err.message);
+      return;
+    }
 
     const payload = {
       name: form.name.trim(),
@@ -186,8 +202,6 @@ function ManageAdmins() {
       status: form.status,
     };
 
-    // Department is supported by PUT, but not included
-    // in the provided POST request contract.
     if (modal === "edit") {
       payload.department = form.department.trim();
     }
@@ -206,39 +220,33 @@ function ManageAdmins() {
       setSaving(true);
 
       if (modal === "add") {
-        // POST: Add Admin
         const response = await axiosInstance.post(
-          `/api/company-owner/admins?companyId=${COMPANY_ID}`,
-          payload
+          "/api/company-owner/admins",
+          payload,
+          { params: { companyId } },
         );
 
-        // Use actual backend response
-        setAdmins((current) => [
-          response.data,
-          ...current,
-        ]);
+        setAdmins((current) => [response.data, ...current]);
 
         window.alert("Admin added successfully!");
       } else {
-        // PUT: Update Admin
         if (!selectedAdmin?.id) {
           setFormError("Invalid administrator ID.");
           return;
         }
 
         const response = await axiosInstance.put(
-          `/api/company/admins/${selectedAdmin.id}?companyId=${COMPANY_ID}`,
-          payload
+          `/api/company/admins/${selectedAdmin.id}`,
+          payload,
+          { params: { companyId } },
         );
 
         const updatedAdmin = response.data;
 
         setAdmins((current) =>
           current.map((admin) =>
-            admin.id === selectedAdmin.id
-              ? updatedAdmin
-              : admin
-          )
+            admin.id === selectedAdmin.id ? updatedAdmin : admin,
+          ),
         );
 
         window.alert("Admin updated successfully!");
@@ -250,48 +258,55 @@ function ManageAdmins() {
 
       setFormError(
         err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Unable to save administrator. Please try again."
+          err.response?.data?.error ||
+          err.message ||
+          "Unable to save administrator. Please try again.",
       );
     } finally {
       setSaving(false);
     }
   };
 
-  // DELETE: Remove Admin
+  // DELETE: Remove administrator
   const deleteAdmin = async (admin) => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete ${admin.name}?`
+      `Are you sure you want to delete ${admin.name}?`,
     );
 
     if (!confirmed) return;
+
+    let companyId;
+
+    try {
+      companyId = getCompanyIdOrThrow();
+    } catch (err) {
+      window.alert(err.message);
+      return;
+    }
 
     try {
       setDeletingId(admin.id);
 
       const response = await axiosInstance.delete(
-        `/api/company/admins/${admin.id}?companyId=${COMPANY_ID}`
+        `/api/company/admins/${admin.id}`,
+        { params: { companyId } },
       );
 
-      setAdmins((current) =>
-        current.filter((item) => item.id !== admin.id)
-      );
+      setAdmins((current) => current.filter((item) => item.id !== admin.id));
 
       if (selectedAdmin?.id === admin.id) {
         closeModal();
       }
 
-      window.alert(
-        response.data?.message ||
-        "Admin removed successfully."
-      );
+      window.alert(response.data?.message || "Admin removed successfully.");
     } catch (err) {
       console.error("Delete admin error:", err);
 
       window.alert(
         err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Unable to delete administrator."
+          err.response?.data?.error ||
+          err.message ||
+          "Unable to delete administrator.",
       );
     } finally {
       setDeletingId(null);
@@ -300,19 +315,13 @@ function ManageAdmins() {
 
   return (
     <div className="manage-admins-page">
-
-      {/* Page Heading */}
       <div className="admins-heading">
         <div>
-          <span className="admins-eyebrow">
-            ORGANIZATION MANAGEMENT
-          </span>
+          <span className="admins-eyebrow">ORGANIZATION MANAGEMENT</span>
 
           <h1>Manage Admins</h1>
 
-          <p>
-            Add, view, update and manage your organization administrators.
-          </p>
+          <p>Add, view, update and manage your organization administrators.</p>
         </div>
 
         <div style={{ display: "flex", gap: "10px" }}>
@@ -337,9 +346,7 @@ function ManageAdmins() {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="admins-summary">
-
         <div className="admins-summary-card">
           <div className="admins-summary-icon">
             <ShieldCheck size={21} />
@@ -369,12 +376,9 @@ function ManageAdmins() {
             <strong>{inactiveCount}</strong>
           </div>
         </div>
-
       </div>
 
-      {/* Administrator Table */}
       <div className="admins-table-card">
-
         <div className="admins-toolbar">
           <div>
             <h2>Administrator List</h2>
@@ -382,7 +386,6 @@ function ManageAdmins() {
           </div>
 
           <div className="admins-filters">
-
             <div className="admins-search">
               <Search size={17} />
 
@@ -413,13 +416,11 @@ function ManageAdmins() {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-
           </div>
         </div>
 
         <div className="admins-table-wrapper">
           <table className="admins-table">
-
             <thead>
               <tr>
                 <th>ADMIN</th>
@@ -432,7 +433,6 @@ function ManageAdmins() {
             </thead>
 
             <tbody>
-
               {loading && (
                 <tr>
                   <td colSpan="6">
@@ -461,9 +461,9 @@ function ManageAdmins() {
                 </tr>
               )}
 
-              {!loading && !error &&
+              {!loading &&
+                !error &&
                 filteredAdmins.map((admin) => {
-
                   const isActive =
                     (admin.status || "").toLowerCase() === "active";
 
@@ -472,9 +472,7 @@ function ManageAdmins() {
                       <td>
                         <div className="admin-person">
                           <div className="admin-avatar">
-                            {(admin.name || "A")
-                              .charAt(0)
-                              .toUpperCase()}
+                            {(admin.name || "A").charAt(0).toUpperCase()}
                           </div>
 
                           <div>
@@ -485,19 +483,14 @@ function ManageAdmins() {
                       </td>
 
                       <td>{admin.department || "—"}</td>
-
                       <td>{admin.phone || "—"}</td>
 
-                      <td>
-                        {formatDate(admin.joined || admin.createdAt)}
-                      </td>
+                      <td>{formatDate(admin.joined || admin.createdAt)}</td>
 
                       <td>
                         <span
                           className={`admin-status ${
-                            isActive
-                              ? "status-active"
-                              : "status-inactive"
+                            isActive ? "status-active" : "status-inactive"
                           }`}
                         >
                           {admin.status || "Unknown"}
@@ -506,7 +499,6 @@ function ManageAdmins() {
 
                       <td>
                         <div className="admin-actions">
-
                           <button
                             type="button"
                             title="View"
@@ -532,28 +524,23 @@ function ManageAdmins() {
                           >
                             <Trash2 size={16} />
                           </button>
-
                         </div>
                       </td>
                     </tr>
                   );
                 })}
 
-              {!loading && !error &&
-                filteredAdmins.length === 0 && (
-                  <tr>
-                    <td colSpan="6">
-                      <div className="admins-empty">
-                        <UserRound size={30} />
-                        <strong>No admins found</strong>
-                        <span>
-                          Try another search or add a new admin.
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-
+              {!loading && !error && filteredAdmins.length === 0 && (
+                <tr>
+                  <td colSpan="6">
+                    <div className="admins-empty">
+                      <UserRound size={30} />
+                      <strong>No admins found</strong>
+                      <span>Try another search or add a new admin.</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -561,10 +548,8 @@ function ManageAdmins() {
         <div className="admins-table-footer">
           Showing {filteredAdmins.length} of {admins.length} administrators
         </div>
-
       </div>
 
-      {/* Add / Edit / View Modal */}
       {modal && (
         <div
           className="admin-modal-overlay"
@@ -575,15 +560,14 @@ function ManageAdmins() {
           }}
         >
           <div className="admin-modal">
-
             <div className="admin-modal-header">
               <div>
                 <h2>
                   {modal === "add"
                     ? "Add New Admin"
                     : modal === "edit"
-                    ? "Edit Admin"
-                    : "Admin Details"}
+                      ? "Edit Admin"
+                      : "Admin Details"}
                 </h2>
 
                 <p>
@@ -593,23 +577,15 @@ function ManageAdmins() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={closeModal}
-                aria-label="Close"
-              >
+              <button type="button" onClick={closeModal} aria-label="Close">
                 <X size={20} />
               </button>
             </div>
 
-            {/* View Details */}
             {modal === "view" && selectedAdmin && (
               <div className="admin-details">
-
                 <div className="admin-details-avatar">
-                  {(selectedAdmin.name || "A")
-                    .charAt(0)
-                    .toUpperCase()}
+                  {(selectedAdmin.name || "A").charAt(0).toUpperCase()}
                 </div>
 
                 <h3>{selectedAdmin.name || "—"}</h3>
@@ -654,7 +630,7 @@ function ManageAdmins() {
                     <span>Joined Date</span>
                     <strong>
                       {formatDate(
-                        selectedAdmin.joined || selectedAdmin.createdAt
+                        selectedAdmin.joined || selectedAdmin.createdAt,
                       )}
                     </strong>
                   </div>
@@ -678,14 +654,11 @@ function ManageAdmins() {
                   <Pencil size={16} />
                   Edit Admin
                 </button>
-
               </div>
             )}
 
-            {/* Add / Edit Form */}
             {(modal === "add" || modal === "edit") && (
               <form className="admin-form" onSubmit={saveAdmin}>
-
                 <label>
                   Full Name *
                   <input
@@ -747,14 +720,9 @@ function ManageAdmins() {
                   </select>
                 </label>
 
-                {formError && (
-                  <p className="admin-form-error">
-                    {formError}
-                  </p>
-                )}
+                {formError && <p className="admin-form-error">{formError}</p>}
 
                 <div className="admin-form-actions">
-
                   <button
                     type="button"
                     className="admin-cancel-btn"
@@ -772,19 +740,15 @@ function ManageAdmins() {
                     {saving
                       ? "Saving..."
                       : modal === "add"
-                      ? "Add Admin"
-                      : "Save Changes"}
+                        ? "Add Admin"
+                        : "Save Changes"}
                   </button>
-
                 </div>
-
               </form>
             )}
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

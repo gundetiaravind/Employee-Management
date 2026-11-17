@@ -5,6 +5,7 @@ const AUTH_KEY = "orgconnect-auth";
 const normalizeRole = (role) =>
   String(role || "").replace(/^ROLE_/, "").toUpperCase();
 
+// Get saved authentication data
 export const getAuth = () => {
   try {
     return JSON.parse(sessionStorage.getItem(AUTH_KEY) || "null");
@@ -13,18 +14,23 @@ export const getAuth = () => {
   }
 };
 
+// Get JWT token
 export const getToken = () => getAuth()?.accessToken || null;
 
+// Save authentication data, including companyId
 export const saveAuth = (data) => {
   sessionStorage.setItem(AUTH_KEY, JSON.stringify(data));
 };
 
+// Clear authentication data
 export const clearAuth = () => {
   sessionStorage.removeItem(AUTH_KEY);
 };
 
+// Check authentication
 export const isAuthenticated = () => Boolean(getToken());
 
+// Check user role
 export const hasRole = (allowedRoles = []) => {
   const auth = getAuth();
 
@@ -35,6 +41,7 @@ export const hasRole = (allowedRoles = []) => {
   );
 };
 
+// Get dashboard route based on role
 export const getDashboardPath = (role) => {
   const routes = {
     PLATFORM_MANAGER: "/platform-manager/dashboard",
@@ -46,6 +53,7 @@ export const getDashboardPath = (role) => {
   return routes[normalizeRole(role)] || "/login";
 };
 
+// Get currently logged-in user
 export const getCurrentUser = async () => {
   const auth = getAuth();
 
@@ -69,9 +77,11 @@ export const getCurrentUser = async () => {
     throw new Error(data.message || "Unable to fetch user details.");
   }
 
+  // Preserve companyId received during login.
   const updatedAuth = {
     ...auth,
     userId: data.userId,
+    companyId: data.companyId ?? auth.companyId ?? null,
     fullName: data.fullName,
     email: data.email,
     role: normalizeRole(data.role),
@@ -82,6 +92,7 @@ export const getCurrentUser = async () => {
   return updatedAuth;
 };
 
+// Change password
 export const changePassword = async (passwordData) => {
   const auth = getAuth();
 
