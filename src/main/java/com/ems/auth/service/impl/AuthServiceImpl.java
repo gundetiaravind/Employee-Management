@@ -210,19 +210,233 @@ private static final SecureRandom RANDOM = new SecureRandom();
         // Important: persist changes
         userRepository.save(user);
 
-        emailService.sendSimpleEmail(
-                user.getEmail(),
-                "OrgConnect - Password Reset OTP",
-                "Hello " + user.getFullName() + ",\n\n"
-                        + "Your OrgConnect password reset OTP is: "
-                        + otp + "\n\n"
-                        + "This OTP expires in 5 minutes.\n"
-                        + "You have a maximum of 5 verification attempts.\n\n"
-                        + "If you did not request this, please ignore this email.\n\n"
-                        + "Regards,\nOrgConnect Team"
-        );
+        // emailService.sendSimpleEmail(
+        //         user.getEmail(),
+        //         "OrgConnect - Password Reset OTP",
+        //         "Hello " + user.getFullName() + ",\n\n"
+        //                 + "Your OrgConnect password reset OTP is: "
+        //                 + otp + "\n\n"
+        //                 + "This OTP expires in 5 minutes.\n"
+        //                 + "You have a maximum of 5 verification attempts.\n\n"
+        //                 + "If you did not request this, please ignore this email.\n\n"
+        //                 + "Regards,\nOrgConnect Team"
+        // );
+
+        emailService.sendHtmlEmail(
+        user.getEmail(),
+        "OrgConnect - Password Reset OTP",
+        this.buildPasswordResetOtpEmail(user.getFullName(), otp));
+    }
+    // BUILD PASSWORD RESET OTP HTML EMAIL
+    private String buildPasswordResetOtpEmail(String fullName, String otp) {
+
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Password Reset OTP</title>
+            </head>
+
+            <body style="
+                margin: 0;
+                padding: 0;
+                background-color: #f4f6f9;
+                font-family: Arial, Helvetica, sans-serif;
+            ">
+
+                <table width="100%%" cellpadding="0" cellspacing="0"
+                       style="padding: 30px 10px; background-color: #f4f6f9;">
+
+                    <tr>
+                        <td align="center">
+
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="
+                                       max-width: 600px;
+                                       background-color: #ffffff;
+                                       border-radius: 10px;
+                                       overflow: hidden;
+                                       border: 1px solid #e5e7eb;
+                                   ">
+
+                                <!-- Header -->
+                                <tr>
+                                    <td style="
+                                        background-color: #2563eb;
+                                        padding: 25px;
+                                        text-align: center;
+                                    ">
+                                        <h1 style="
+                                            margin: 0;
+                                            color: #ffffff;
+                                            font-size: 26px;
+                                        ">
+                                            OrgConnect
+                                        </h1>
+
+                                        <p style="
+                                            margin: 8px 0 0;
+                                            color: #dbeafe;
+                                            font-size: 14px;
+                                        ">
+                                            Employee Management System
+                                        </p>
+                                    </td>
+                                </tr>
+
+                                <!-- Content -->
+                                <tr>
+                                    <td style="padding: 35px 30px;">
+
+                                        <h2 style="
+                                            color: #1f2937;
+                                            font-size: 22px;
+                                            margin-top: 0;
+                                        ">
+                                            Password Reset Request
+                                        </h2>
+
+                                        <p style="
+                                            color: #4b5563;
+                                            font-size: 15px;
+                                            line-height: 1.6;
+                                        ">
+                                            Hello <strong>%s</strong>,
+                                        </p>
+
+                                        <p style="
+                                            color: #4b5563;
+                                            font-size: 15px;
+                                            line-height: 1.6;
+                                        ">
+                                            We received a request to reset your
+                                            OrgConnect account password.
+                                            Use the OTP below to verify your identity.
+                                        </p>
+
+                                        <!-- OTP -->
+                                        <table width="100%%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td align="center" style="padding: 20px 0;">
+
+                                                    <div style="
+                                                        display: inline-block;
+                                                        background-color: #eff6ff;
+                                                        border: 1px dashed #2563eb;
+                                                        border-radius: 8px;
+                                                        padding: 18px 35px;
+                                                        color: #1d4ed8;
+                                                        font-size: 32px;
+                                                        font-weight: bold;
+                                                        letter-spacing: 10px;
+                                                    ">
+                                                        %s
+                                                    </div>
+
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <p style="
+                                            color: #4b5563;
+                                            font-size: 14px;
+                                            line-height: 1.6;
+                                        ">
+                                            <strong>Important:</strong>
+                                        </p>
+
+                                        <ul style="
+                                            color: #4b5563;
+                                            font-size: 14px;
+                                            line-height: 1.8;
+                                            padding-left: 20px;
+                                        ">
+                                            <li>This OTP expires in <strong>5 minutes</strong>.</li>
+                                            <li>You have a maximum of <strong>5 verification attempts</strong>.</li>
+                                            <li>Never share this OTP with anyone.</li>
+                                        </ul>
+
+                                        <p style="
+                                            color: #4b5563;
+                                            font-size: 14px;
+                                            line-height: 1.6;
+                                        ">
+                                            If you did not request a password reset,
+                                            please ignore this email. Your account
+                                            password will remain unchanged.
+                                        </p>
+
+                                        <p style="
+                                            color: #4b5563;
+                                            font-size: 15px;
+                                            line-height: 1.6;
+                                            margin-top: 30px;
+                                        ">
+                                            Regards,<br>
+                                            <strong>OrgConnect Team</strong>
+                                        </p>
+
+                                    </td>
+                                </tr>
+
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="
+                                        background-color: #f9fafb;
+                                        padding: 18px;
+                                        text-align: center;
+                                        border-top: 1px solid #e5e7eb;
+                                    ">
+                                        <p style="
+                                            margin: 0;
+                                            color: #9ca3af;
+                                            font-size: 12px;
+                                        ">
+                                            This is an automated email.
+                                            Please do not reply.
+                                        </p>
+
+                                        <p style="
+                                            margin: 8px 0 0;
+                                            color: #9ca3af;
+                                            font-size: 12px;
+                                        ">
+                                            &copy; OrgConnect. All rights reserved.
+                                        </p>
+                                    </td>
+                                </tr>
+
+                            </table>
+
+                        </td>
+                    </tr>
+
+                </table>
+
+            </body>
+            </html>
+            """.formatted(
+                    escapeHtml(fullName),
+                    otp
+            );
     }
 
+// ESCAPE HTML SPECIAL CHARACTERS
+private String escapeHtml(String value) {
+
+    if (value == null) {
+        return "";
+    }
+
+    return value
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;");
+}
 
 
 
