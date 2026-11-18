@@ -172,8 +172,13 @@ private static final SecureRandom RANDOM = new SecureRandom();
         User user = userRepository.findByEmail(email).orElse(null);
 
         // Do not reveal whether the email is registered.
+        // if (user == null) {
+        //     return;
+        // }
         if (user == null) {
-            return;
+                throw new IllegalArgumentException(
+                        "This email address is not registered. Please check your email."
+                );
         }
 
         LocalDateTime now = LocalDateTime.now();
