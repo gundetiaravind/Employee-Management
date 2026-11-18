@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
@@ -16,9 +15,9 @@ import {
 
 import { useTheme } from "../../context/ThemeContext";
 import companyService from "../../services/companyService";
-import "./OwnerDashboard.css";
+import { clearAuth, getAuth } from "../../services/authService";
 
-const AUTH_KEY = "orgconnect-auth";
+import "./OwnerDashboard.css";
 
 export default function OwnerLayout() {
   const navigate = useNavigate();
@@ -29,38 +28,20 @@ export default function OwnerLayout() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Read authenticated user
-  const user = (() => {
-    try {
-      return JSON.parse(
-        sessionStorage.getItem(AUTH_KEY) || "null"
-      );
-    } catch {
-      return null;
-    }
-  })();
+  // ==================== AUTHENTICATED USER ====================
 
+  const user = getAuth();
   const ownerName = user?.fullName || user?.name || "Company Owner";
 
-  const companyId =
-    user?.companyId ??
-    user?.company?.id ??
-    user?.company?.companyId;
+  // ==================== FETCH COMPANY DASHBOARD ====================
 
-  // Fetch company dashboard API
   const fetchCompanyDashboard = useCallback(async () => {
-    if (!companyId) {
-      setError("Company ID is missing. Please login again.");
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError("");
 
-      const response =
-        await companyService.companyDashboard(companyId);
+      // Company ID is derived from the authenticated JWT on the backend.
+      const response = await companyService.companyDashboard();
 
       setCompanyData(response);
     } catch (err) {
@@ -68,22 +49,26 @@ export default function OwnerLayout() {
 
       setError(
         err.response?.data?.message ||
-        "Unable to load company dashboard."
+          err.message ||
+          "Unable to load company dashboard.",
       );
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, []);
 
   useEffect(() => {
     fetchCompanyDashboard();
   }, [fetchCompanyDashboard]);
 
-  // Logout
+  // ==================== LOGOUT ====================
+
   const handleLogout = () => {
-    sessionStorage.removeItem(AUTH_KEY);
+    clearAuth();
     navigate("/login", { replace: true });
   };
+
+  // ==================== NAVIGATION ====================
 
   const navigation = [
     {
@@ -113,13 +98,13 @@ export default function OwnerLayout() {
     },
   ];
 
+  // ==================== RENDER ====================
+
   return (
     <div className="owner-layout">
-
       {/* HEADER */}
       <header className="owner-header">
         <div className="owner-header-container">
-
           {/* BRAND */}
           <NavLink
             to="/owner/dashboard"
@@ -131,13 +116,8 @@ export default function OwnerLayout() {
             </div>
 
             <div className="owner-brand-text">
-              {/* <h2>
-                Org<span>Connect</span>
-              </h2> */}
-              {companyData && (
-                <h2>
-               {companyData.companyName}
-              </h2> )}
+              <h2>{companyData?.companyName || "OrgConnect"}</h2>
+
               <small>Owner Workspace</small>
             </div>
           </NavLink>
@@ -159,10 +139,7 @@ export default function OwnerLayout() {
               </NavLink>
             ))}
 
-            <button
-              className="owner-mobile-logout"
-              onClick={handleLogout}
-            >
+            <button className="owner-mobile-logout" onClick={handleLogout}>
               <LogOut size={17} />
               <span>Sign Out</span>
             </button>
@@ -170,18 +147,13 @@ export default function OwnerLayout() {
 
           {/* HEADER ACTIONS */}
           <div className="owner-header-actions">
-
             <button
               className="owner-theme-toggle"
               onClick={toggleTheme}
               aria-label="Toggle color theme"
               title="Toggle theme"
             >
-              {theme === "light" ? (
-                <Moon size={19} />
-              ) : (
-                <Sun size={19} />
-              )}
+              {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
             </button>
 
             <div className="owner-user-info">
@@ -189,10 +161,7 @@ export default function OwnerLayout() {
               <span>{ownerName}</span>
             </div>
 
-            <button
-              className="owner-logout"
-              onClick={handleLogout}
-            >
+            <button className="owner-logout" onClick={handleLogout}>
               <LogOut size={17} />
               <span>Sign Out</span>
             </button>
@@ -205,45 +174,20 @@ export default function OwnerLayout() {
             >
               {menuOpen ? <X size={21} /> : <Menu size={21} />}
             </button>
-
           </div>
         </div>
       </header>
 
-      {/* COMPANY INFORMATION */}
-      {/* {companyData && (
-        <div className="owner-company-bar">
-          <div>
-            <Building2 size={17} />
-
-            <strong>{companyData.companyName}</strong>
-
-            <span className="company-status">
-              {companyData.organizationStatus}
-            </span>
-          </div>
-
-          <span>
-            {companyData.accountType} Workspace
-          </span>
-        </div>
-      )} */}
-
       {/* PAGE CONTENT */}
       <main className="owner-main">
         <div className="owner-page-content">
-
           {loading ? (
-            <div className="owner-loading">
-              Loading company dashboard...
-            </div>
+            <div className="owner-loading">Loading company dashboard...</div>
           ) : error ? (
             <div className="owner-error">
               <p>{error}</p>
 
-              <button onClick={fetchCompanyDashboard}>
-                Try Again
-              </button>
+              <button onClick={fetchCompanyDashboard}>Try Again</button>
             </div>
           ) : (
             <Outlet
@@ -255,7 +199,6 @@ export default function OwnerLayout() {
               }}
             />
           )}
-
         </div>
       </main>
     </div>

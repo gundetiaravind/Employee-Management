@@ -12,9 +12,13 @@ import {
   CalendarDays,
   UserRound,
   RefreshCw,
+  Send,
+  Clock,
+  Ban,
 } from "lucide-react";
 
 import axiosInstance from "../../utils/axiosInstance";
+import invitationService from "../../services/invitationService";
 import "./ManageAdmins.css";
 
 const getCompanyId = () => {
@@ -31,7 +35,14 @@ const getCompanyId = () => {
   }
 };
 
-const emptyForm = {
+const emptyInviteForm = {
+  employeeName: "",
+  email: "",
+  phone: "",
+  department: "",
+};
+
+const emptyEditForm = {
   name: "",
   email: "",
   phone: "",
@@ -53,21 +64,41 @@ function formatDate(date) {
   });
 }
 
+function getInvitationStatus(invitation) {
+  return String(
+    invitation?.invitationStatus ?? invitation?.status ?? "UNKNOWN",
+  ).toUpperCase();
+}
+
+function getInvitationId(invitation) {
+  return invitation?.id ?? invitation?.invitationId;
+}
+
+function getInvitationName(invitation) {
+  return invitation?.employeeName ?? invitation?.name ?? "Admin Invite";
+}
+
 function ManageAdmins() {
   const [admins, setAdmins] = useState([]);
+  const [invitations, setInvitations] = useState([]);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
   const [modal, setModal] = useState(null);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
 
-  const [form, setForm] = useState(emptyForm);
-  const [formError, setFormError] = useState("");
+  const [inviteForm, setInviteForm] = useState(emptyInviteForm);
+  const [editForm, setEditForm] = useState(emptyEditForm);
 
+  const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [invitationLoading, setInvitationLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [revokingId, setRevokingId] = useState(null);
   const [error, setError] = useState("");
+  const [invitationError, setInvitationError] = useState("");
 
   const getCompanyIdOrThrow = () => {
     const companyId = getCompanyId();
@@ -81,7 +112,7 @@ function ManageAdmins() {
     return companyId;
   };
 
-  // GET: Fetch administrators
+  // Fetch existing administrator accounts
   const fetchAdmins = useCallback(async () => {
     try {
       setLoading(true);
@@ -89,7 +120,7 @@ function ManageAdmins() {
 
       const companyId = getCompanyIdOrThrow();
 
-      const response = await axiosInstance.get(`/api/company-owner/admins`, {
+      const response = await axiosInstance.get("/api/company-owner/admins", {
         params: { companyId },
       });
 
@@ -108,14 +139,43 @@ function ManageAdmins() {
     }
   }, []);
 
+  // Fetch invitations from the invitation API
+  const fetchInvitations = useCallback(async () => {
+    try {
+      setInvitationLoading(true);
+      setInvitationError("");
+
+      const data = await invitationService.getInvitations();
+
+      setInvitations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Fetch invitations error:", err);
+
+      setInvitationError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message ||
+          "Unable to load invitations.",
+      );
+    } finally {
+      setInvitationLoading(false);
+    }
+  }, []);
+
+  const refreshAll = () => {
+    fetchAdmins();
+    fetchInvitations();
+  };
+
   useEffect(() => {
     fetchAdmins();
-  }, [fetchAdmins]);
+    fetchInvitations();
+  }, [fetchAdmins, fetchInvitations]);
 
   const filteredAdmins = useMemo(() => {
-    return admins.filter((admin) => {
-      const query = search.trim().toLowerCase();
+    const query = search.trim().toLowerCase();
 
+    return admins.filter((admin) => {
       const matchesSearch =
         (admin.name || "").toLowerCase().includes(query) ||
         (admin.email || "").toLowerCase().includes(query) ||
@@ -130,6 +190,15 @@ function ManageAdmins() {
     });
   }, [admins, search, statusFilter]);
 
+  const adminInvitations = useMemo(() => {
+    return invitations.filter(
+      (invitation) =>
+        String(invitation.invitedRole || "")
+          .replace(/^ROLE_/, "")
+          .toUpperCase() === "ADMIN",
+    );
+  }, [invitations]);
+
   const activeCount = admins.filter(
     (admin) => (admin.status || "").toLowerCase() === "active",
   ).length;
@@ -138,18 +207,23 @@ function ManageAdmins() {
     (admin) => (admin.status || "").toLowerCase() === "inactive",
   ).length;
 
+  const pendingCount = adminInvitations.filter(
+    (invitation) => getInvitationStatus(invitation) === "PENDING",
+  ).length;
+
   const closeModal = () => {
     setModal(null);
     setSelectedAdmin(null);
-    setForm(emptyForm);
+    setInviteForm(emptyInviteForm);
+    setEditForm(emptyEditForm);
     setFormError("");
   };
 
-  const openAdd = () => {
+  const openInvite = () => {
     setSelectedAdmin(null);
-    setForm(emptyForm);
+    setInviteForm(emptyInviteForm);
     setFormError("");
-    setModal("add");
+    setModal("invite");
   };
 
   const openView = (admin) => {
@@ -160,7 +234,7 @@ function ManageAdmins() {
   const openEdit = (admin) => {
     setSelectedAdmin(admin);
 
-    setForm({
+    setEditForm({
       name: admin.name || "",
       email: admin.email || "",
       phone: admin.phone || "",
@@ -172,17 +246,84 @@ function ManageAdmins() {
     setModal("edit");
   };
 
-  const updateField = (event) => {
+  const updateInviteField = (event) => {
     const { name, value } = event.target;
 
-    setForm((current) => ({
+    setInviteForm((current) => ({
       ...current,
       [name]: value,
     }));
+
+    setFormError("");
   };
 
-  // POST / PUT: Add or update administrator
-  const saveAdmin = async (event) => {
+  const updateEditField = (event) => {
+    const { name, value } = event.target;
+
+    setEditForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+
+    setFormError("");
+  };
+
+  // Send Admin invitation
+  const sendAdminInvitation = async (event) => {
+    event.preventDefault();
+    setFormError("");
+
+    const employeeName = inviteForm.employeeName.trim();
+    const email = inviteForm.email.trim().toLowerCase();
+    const phone = inviteForm.phone.trim();
+    const department = inviteForm.department.trim();
+
+    if (!employeeName || !email) {
+      setFormError("Please enter the Admin name and email address.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFormError("Please enter a valid email address.");
+      return;
+    }
+
+    if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+      setFormError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await invitationService.sendInvitation({
+        invitedRole: "ADMIN",
+        employeeName,
+        email,
+        phone: phone || null,
+        department: department || null,
+      });
+
+      window.alert(`Admin invitation sent successfully to ${email}.`);
+
+      closeModal();
+      await fetchInvitations();
+    } catch (err) {
+      console.error("Send Admin invitation error:", err);
+
+      setFormError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message ||
+          "Unable to send Admin invitation.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Update an existing Admin
+  const updateAdmin = async (event) => {
     event.preventDefault();
     setFormError("");
 
@@ -196,15 +337,12 @@ function ManageAdmins() {
     }
 
     const payload = {
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      status: form.status,
+      name: editForm.name.trim(),
+      email: editForm.email.trim().toLowerCase(),
+      phone: editForm.phone.trim(),
+      department: editForm.department.trim(),
+      status: editForm.status,
     };
-
-    if (modal === "edit") {
-      payload.department = form.department.trim();
-    }
 
     if (!payload.name || !payload.email) {
       setFormError("Please enter name and email.");
@@ -219,55 +357,42 @@ function ManageAdmins() {
     try {
       setSaving(true);
 
-      if (modal === "add") {
-        const response = await axiosInstance.post(
-          "/api/company-owner/admins",
-          payload,
-          { params: { companyId } },
-        );
-
-        setAdmins((current) => [response.data, ...current]);
-
-        window.alert("Admin added successfully!");
-      } else {
-        if (!selectedAdmin?.id) {
-          setFormError("Invalid administrator ID.");
-          return;
-        }
-
-        const response = await axiosInstance.put(
-          `/api/company/admins/${selectedAdmin.id}`,
-          payload,
-          { params: { companyId } },
-        );
-
-        const updatedAdmin = response.data;
-
-        setAdmins((current) =>
-          current.map((admin) =>
-            admin.id === selectedAdmin.id ? updatedAdmin : admin,
-          ),
-        );
-
-        window.alert("Admin updated successfully!");
+      if (!selectedAdmin?.id) {
+        setFormError("Invalid administrator ID.");
+        return;
       }
 
+      const response = await axiosInstance.put(
+        `/api/company/admins/${selectedAdmin.id}`,
+        payload,
+        { params: { companyId } },
+      );
+
+      const updatedAdmin = response.data;
+
+      setAdmins((current) =>
+        current.map((admin) =>
+          admin.id === selectedAdmin.id ? updatedAdmin : admin,
+        ),
+      );
+
+      window.alert("Admin updated successfully!");
       closeModal();
     } catch (err) {
-      console.error("Save admin error:", err);
+      console.error("Update Admin error:", err);
 
       setFormError(
         err.response?.data?.message ||
           err.response?.data?.error ||
           err.message ||
-          "Unable to save administrator. Please try again.",
+          "Unable to update administrator.",
       );
     } finally {
       setSaving(false);
     }
   };
 
-  // DELETE: Remove administrator
+  // Delete an existing Admin
   const deleteAdmin = async (admin) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete ${admin.name}?`,
@@ -300,7 +425,7 @@ function ManageAdmins() {
 
       window.alert(response.data?.message || "Admin removed successfully.");
     } catch (err) {
-      console.error("Delete admin error:", err);
+      console.error("Delete Admin error:", err);
 
       window.alert(
         err.response?.data?.message ||
@@ -313,6 +438,58 @@ function ManageAdmins() {
     }
   };
 
+  // Revoke a pending Admin invitation
+  const revokeInvitation = async (invitation) => {
+    const invitationId = getInvitationId(invitation);
+
+    if (!invitationId) {
+      window.alert("Invitation ID is missing. Cannot revoke this invitation.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Revoke the invitation sent to ${invitation.email}?`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setRevokingId(invitationId);
+
+      await invitationService.revokeInvitation(invitationId);
+
+      await fetchInvitations();
+
+      window.alert("Invitation revoked successfully.");
+    } catch (err) {
+      console.error("Revoke invitation error:", err);
+
+      window.alert(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message ||
+          "Unable to revoke invitation.",
+      );
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const invitationStatusClass = (status) => {
+    switch (status) {
+      case "PENDING":
+        return "invitation-status-pending";
+      case "ACCEPTED":
+        return "invitation-status-accepted";
+      case "EXPIRED":
+        return "invitation-status-expired";
+      case "REVOKED":
+        return "invitation-status-revoked";
+      default:
+        return "invitation-status-unknown";
+    }
+  };
+
   return (
     <div className="manage-admins-page">
       <div className="admins-heading">
@@ -321,15 +498,15 @@ function ManageAdmins() {
 
           <h1>Manage Admins</h1>
 
-          <p>Add, view, update and manage your organization administrators.</p>
+          <p>Invite administrators and manage your organization accounts.</p>
         </div>
 
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div className="admins-heading-actions">
           <button
             type="button"
-            className="admins-primary-btn"
-            onClick={fetchAdmins}
-            disabled={loading}
+            className="admins-secondary-btn"
+            onClick={refreshAll}
+            disabled={loading || invitationLoading}
           >
             <RefreshCw size={17} />
             Refresh
@@ -338,10 +515,10 @@ function ManageAdmins() {
           <button
             type="button"
             className="admins-primary-btn"
-            onClick={openAdd}
+            onClick={openInvite}
           >
             <Plus size={18} />
-            Add Admin
+            Invite Admin
           </button>
         </div>
       </div>
@@ -368,21 +545,22 @@ function ManageAdmins() {
         </div>
 
         <div className="admins-summary-card">
-          <div className="admins-summary-icon inactive-icon">
-            <UserRound size={21} />
+          <div className="admins-summary-icon pending-icon">
+            <Clock size={21} />
           </div>
           <div>
-            <span>Inactive Admins</span>
-            <strong>{inactiveCount}</strong>
+            <span>Pending Invitations</span>
+            <strong>{pendingCount}</strong>
           </div>
         </div>
       </div>
 
+      {/* Existing administrator accounts */}
       <div className="admins-table-card">
         <div className="admins-toolbar">
           <div>
             <h2>Administrator List</h2>
-            <p>Manage administrator accounts in your organization.</p>
+            <p>Manage active administrator accounts.</p>
           </div>
 
           <div className="admins-filters">
@@ -536,7 +714,9 @@ function ManageAdmins() {
                     <div className="admins-empty">
                       <UserRound size={30} />
                       <strong>No admins found</strong>
-                      <span>Try another search or add a new admin.</span>
+                      <span>
+                        Try another search or invite a new administrator.
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -550,11 +730,152 @@ function ManageAdmins() {
         </div>
       </div>
 
+      {/* Admin invitations */}
+      <div className="admins-table-card invitation-table-card">
+        <div className="admins-toolbar">
+          <div>
+            <h2>Admin Invitations</h2>
+            <p>Track invitations sent to administrators.</p>
+          </div>
+
+          <button
+            type="button"
+            className="admins-secondary-btn"
+            onClick={fetchInvitations}
+            disabled={invitationLoading}
+          >
+            <RefreshCw size={16} />
+            Refresh Invitations
+          </button>
+        </div>
+
+        {invitationError && (
+          <div className="invitation-error">
+            {invitationError}
+            <button type="button" onClick={fetchInvitations}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        <div className="admins-table-wrapper">
+          <table className="admins-table invitations-table">
+            <thead>
+              <tr>
+                <th>INVITEE</th>
+                <th>EMAIL</th>
+                <th>DEPARTMENT</th>
+                <th>SENT DATE</th>
+                <th>STATUS</th>
+                <th>ACTION</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {invitationLoading && (
+                <tr>
+                  <td colSpan="6">
+                    <div className="admins-empty">
+                      <RefreshCw size={24} />
+                      <strong>Loading invitations...</strong>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!invitationLoading &&
+                !invitationError &&
+                adminInvitations.map((invitation, index) => {
+                  const status = getInvitationStatus(invitation);
+                  const invitationId = getInvitationId(invitation);
+                  const canRevoke = status === "PENDING";
+
+                  return (
+                    <tr key={invitationId ?? `${invitation.email}-${index}`}>
+                      <td>
+                        <div className="admin-person">
+                          <div className="admin-avatar">
+                            {getInvitationName(invitation)
+                              .charAt(0)
+                              .toUpperCase()}
+                          </div>
+
+                          <div>
+                            <strong>{getInvitationName(invitation)}</strong>
+                            <span>Administrator</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td>{invitation.email || "—"}</td>
+                      <td>{invitation.department || "—"}</td>
+                      <td>
+                        {formatDate(invitation.createdAt || invitation.sentAt)}
+                      </td>
+
+                      <td>
+                        <span
+                          className={`invitation-status ${invitationStatusClass(
+                            status,
+                          )}`}
+                        >
+                          {status}
+                        </span>
+                      </td>
+
+                      <td>
+                        {canRevoke ? (
+                          <button
+                            type="button"
+                            className="invitation-revoke-btn"
+                            disabled={
+                              !invitationId || revokingId === invitationId
+                            }
+                            onClick={() => revokeInvitation(invitation)}
+                          >
+                            <Ban size={15} />
+                            {revokingId === invitationId
+                              ? "Revoking..."
+                              : "Revoke"}
+                          </button>
+                        ) : (
+                          <span className="invitation-no-action">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+              {!invitationLoading &&
+                !invitationError &&
+                adminInvitations.length === 0 && (
+                  <tr>
+                    <td colSpan="6">
+                      <div className="admins-empty">
+                        <Mail size={28} />
+                        <strong>No Admin invitations yet</strong>
+                        <span>
+                          Use Invite Admin to send your first invitation.
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="admins-table-footer">
+          Showing {adminInvitations.length} Admin invitations
+        </div>
+      </div>
+
+      {/* Modal */}
       {modal && (
         <div
           className="admin-modal-overlay"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
+            if (event.target === event.currentTarget && !saving) {
               closeModal();
             }
           }}
@@ -563,25 +884,116 @@ function ManageAdmins() {
             <div className="admin-modal-header">
               <div>
                 <h2>
-                  {modal === "add"
-                    ? "Add New Admin"
+                  {modal === "invite"
+                    ? "Invite Administrator"
                     : modal === "edit"
                       ? "Edit Admin"
                       : "Admin Details"}
                 </h2>
 
                 <p>
-                  {modal === "view"
-                    ? "Administrator information"
-                    : "Enter administrator details below."}
+                  {modal === "invite"
+                    ? "Send an invitation email to a new administrator."
+                    : modal === "view"
+                      ? "Administrator information."
+                      : "Update administrator details."}
                 </p>
               </div>
 
-              <button type="button" onClick={closeModal} aria-label="Close">
+              <button
+                type="button"
+                onClick={closeModal}
+                aria-label="Close"
+                disabled={saving}
+              >
                 <X size={20} />
               </button>
             </div>
 
+            {/* Invite Admin form */}
+            {modal === "invite" && (
+              <form className="admin-form" onSubmit={sendAdminInvitation}>
+                <div className="invitation-info">
+                  <ShieldCheck size={19} />
+                  <span>
+                    The invitee will receive an email with a secure link to
+                    create their Admin account and password.
+                  </span>
+                </div>
+
+                <label>
+                  Admin Full Name *
+                  <input
+                    name="employeeName"
+                    value={inviteForm.employeeName}
+                    onChange={updateInviteField}
+                    placeholder="Enter full name"
+                    maxLength={150}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Email Address *
+                  <input
+                    type="email"
+                    name="email"
+                    value={inviteForm.email}
+                    onChange={updateInviteField}
+                    placeholder="admin@company.com"
+                    maxLength={150}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Mobile Number
+                  <input
+                    name="phone"
+                    value={inviteForm.phone}
+                    onChange={updateInviteField}
+                    placeholder="10-digit mobile number"
+                    inputMode="numeric"
+                    maxLength={10}
+                  />
+                </label>
+
+                <label>
+                  Department
+                  <input
+                    name="department"
+                    value={inviteForm.department}
+                    onChange={updateInviteField}
+                    placeholder="Enter department"
+                    maxLength={100}
+                  />
+                </label>
+
+                {formError && <p className="admin-form-error">{formError}</p>}
+
+                <div className="admin-form-actions">
+                  <button
+                    type="button"
+                    className="admin-cancel-btn"
+                    onClick={closeModal}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="admins-primary-btn"
+                    disabled={saving}
+                  >
+                    <Send size={16} />
+                    {saving ? "Sending..." : "Send Invitation"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* View Admin */}
             {modal === "view" && selectedAdmin && (
               <div className="admin-details">
                 <div className="admin-details-avatar">
@@ -657,14 +1069,15 @@ function ManageAdmins() {
               </div>
             )}
 
-            {(modal === "add" || modal === "edit") && (
-              <form className="admin-form" onSubmit={saveAdmin}>
+            {/* Edit existing Admin */}
+            {modal === "edit" && (
+              <form className="admin-form" onSubmit={updateAdmin}>
                 <label>
                   Full Name *
                   <input
                     name="name"
-                    value={form.name}
-                    onChange={updateField}
+                    value={editForm.name}
+                    onChange={updateEditField}
                     placeholder="Enter full name"
                     required
                   />
@@ -675,8 +1088,8 @@ function ManageAdmins() {
                   <input
                     type="email"
                     name="email"
-                    value={form.email}
-                    onChange={updateField}
+                    value={editForm.email}
+                    onChange={updateEditField}
                     placeholder="admin@company.com"
                     required
                   />
@@ -686,8 +1099,8 @@ function ManageAdmins() {
                   Mobile Number *
                   <input
                     name="phone"
-                    value={form.phone}
-                    onChange={updateField}
+                    value={editForm.phone}
+                    onChange={updateEditField}
                     placeholder="10-digit mobile number"
                     inputMode="numeric"
                     maxLength={10}
@@ -696,24 +1109,22 @@ function ManageAdmins() {
                   />
                 </label>
 
-                {modal === "edit" && (
-                  <label>
-                    Department
-                    <input
-                      name="department"
-                      value={form.department}
-                      onChange={updateField}
-                      placeholder="Enter department"
-                    />
-                  </label>
-                )}
+                <label>
+                  Department
+                  <input
+                    name="department"
+                    value={editForm.department}
+                    onChange={updateEditField}
+                    placeholder="Enter department"
+                  />
+                </label>
 
                 <label>
                   Account Status
                   <select
                     name="status"
-                    value={form.status}
-                    onChange={updateField}
+                    value={editForm.status}
+                    onChange={updateEditField}
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -737,11 +1148,7 @@ function ManageAdmins() {
                     className="admins-primary-btn"
                     disabled={saving}
                   >
-                    {saving
-                      ? "Saving..."
-                      : modal === "add"
-                        ? "Add Admin"
-                        : "Save Changes"}
+                    {saving ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </form>

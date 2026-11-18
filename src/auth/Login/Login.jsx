@@ -9,26 +9,23 @@ import {
   ArrowRight,
   ArrowLeft,
 } from "lucide-react";
+
+import {
+  login as loginUser,
+  saveAuth,
+  getDashboardPath,
+} from "../../services/authService";
+
 import "./Login.css";
-
-const API_URL = "http://localhost:8080/api/auth/login";
-export const AUTH_KEY = "orgconnect-auth";
-
-const ROLE_ROUTES = {
-  PLATFORM_MANAGER: "/platform-manager/dashboard",
-  SUPER_ADMIN: "/platform-manager/dashboard",
-  COMPANY_OWNER: "/owner/dashboard",
-  OWNER: "/owner/dashboard",
-  ADMIN: "/admin/dashboard",
-  EMPLOYEE: "/employee/dashboard",
-};
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +36,7 @@ export default function Login() {
       ...previous,
       [e.target.name]: e.target.value,
     }));
+
     setError("");
   };
 
@@ -54,26 +52,13 @@ export default function Login() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: form.email.trim().toLowerCase(),
-          password: form.password,
-        }),
+      // Login using the common authentication service
+      const data = await loginUser({
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
       });
 
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || data.error || "Invalid email or password.",
-        );
-      }
-
-      if (!data.accessToken) {
+      if (!data?.accessToken) {
         throw new Error("Authentication token was not received.");
       }
 
@@ -81,19 +66,26 @@ export default function Login() {
         .replace(/^ROLE_/, "")
         .toUpperCase();
 
-      const dashboard = ROLE_ROUTES[role];
+      const dashboard = getDashboardPath(role);
 
-      if (!dashboard) {
+      if (dashboard === "/login") {
         throw new Error("Your account role is not recognized.");
       }
 
+      const fullName =
+        data.fullName ||
+        [data.firstName, data.lastName].filter(Boolean).join(" ") ||
+        data.username ||
+        "";
+
       const authenticatedUser = {
+        ...data,
         accessToken: data.accessToken,
         tokenType: data.tokenType || "Bearer",
         userId: data.userId,
         companyId: data.companyId ?? null,
-        fullName: data.fullName,
-        email: data.email,
+        fullName,
+        email: data.email || form.email.trim().toLowerCase(),
         role,
       };
 
@@ -106,8 +98,10 @@ export default function Login() {
         );
       }
 
-      sessionStorage.setItem(AUTH_KEY, JSON.stringify(authenticatedUser));
+      // Save complete authentication data
+      saveAuth(authenticatedUser);
 
+      // Redirect according to user role
       navigate(dashboard, { replace: true });
     } catch (err) {
       setError(
@@ -191,20 +185,10 @@ export default function Login() {
             </div>
 
             <div className="auth-options">
-              <label className="remember-option">
-                <input type="checkbox" />
-                Remember me
-              </label>
-
-              <button
-                type="button"
-                className="forgot-button"
-               
-              >
-                <Link to="/forgot-password">forgotPassword</Link>
-              </button>
+              <Link to="/forgot-password" className="forgot-button">
+                Forgot Password?
+              </Link>
             </div>
-            
 
             {error && (
               <p className="auth-message" role="alert">
@@ -214,6 +198,7 @@ export default function Login() {
 
             <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? "Signing In..." : "Sign In"}
+
               {!loading && <ArrowRight size={18} />}
             </button>
           </form>

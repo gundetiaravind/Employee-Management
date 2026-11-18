@@ -1,10 +1,13 @@
-const API_URL = "http://localhost:8080/api/auth";
+
+import axiosInstance from "../utils/axiosInstance";
+
 const AUTH_KEY = "orgconnect-auth";
 
 const normalizeRole = (role) =>
   String(role || "").replace(/^ROLE_/, "").toUpperCase();
 
-// Get saved authentication data
+// ==================== AUTH STORAGE ====================
+
 export const getAuth = () => {
   try {
     return JSON.parse(sessionStorage.getItem(AUTH_KEY) || "null");
@@ -13,34 +16,32 @@ export const getAuth = () => {
   }
 };
 
-// Get JWT token
 export const getToken = () => getAuth()?.accessToken || null;
 
-// Save authentication data, including companyId
 export const saveAuth = (data) => {
   sessionStorage.setItem(AUTH_KEY, JSON.stringify(data));
 };
 
-// Clear authentication data
 export const clearAuth = () => {
   sessionStorage.removeItem(AUTH_KEY);
 };
 
-// Check authentication
 export const isAuthenticated = () => Boolean(getToken());
 
-// Check user role
+// ==================== ROLE MANAGEMENT ====================
+
 export const hasRole = (allowedRoles = []) => {
   const auth = getAuth();
 
-  if (!auth?.accessToken || !auth?.role) return false;
+  if (!auth?.accessToken || !auth?.role) {
+    return false;
+  }
 
   return allowedRoles.map(normalizeRole).includes(
     normalizeRole(auth.role)
   );
 };
 
-// Get dashboard route based on role
 export const getDashboardPath = (role) => {
   const routes = {
     PLATFORM_MANAGER: "/platform-manager/dashboard",
@@ -52,184 +53,183 @@ export const getDashboardPath = (role) => {
   return routes[normalizeRole(role)] || "/login";
 };
 
-// Get currently logged-in user
-export const getCurrentUser = async () => {
-  const auth = getAuth();
+// ==================== ERROR HANDLING ====================
 
-  if (!auth?.accessToken) {
-    throw new Error("Please login first.");
+const getErrorMessage = (error, fallback) => {
+  const data = error?.response?.data;
+
+  if (typeof data === "string" && data.trim()) {
+    return data;
   }
 
-  const response = await fetch(`${API_URL}/me`, {
-    method: "GET",
-    headers: {
-      Authorization: `${auth.tokenType || "Bearer"} ${auth.accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    if (response.status === 401) clearAuth();
-
-    throw new Error(data.message || "Unable to fetch user details.");
-  }
-
-  // Preserve companyId received during login.
-  const updatedAuth = {
-    ...auth,
-    userId: data.userId,
-    companyId: data.companyId ?? auth.companyId ?? null,
-    fullName: data.fullName,
-    email: data.email,
-    role: normalizeRole(data.role),
-  };
-
-  saveAuth(updatedAuth);
-
-  return updatedAuth;
+  return (
+    data?.message ||
+    data?.detail ||
+    data?.error ||
+    error?.message ||
+    fallback
+  );
 };
 
-// Change password
-export const changePassword = async (passwordData) => {
-  const auth = getAuth();
+// ==================== LOGIN ====================
 
-  if (!auth?.accessToken) {
-    throw new Error("Please login first.");
-  }
-
-  const response = await fetch(`${API_URL}/change-password`, {
-    method: "PUT",
-    headers: {
-      Authorization: `${auth.tokenType || "Bearer"} ${auth.accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(passwordData),
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    if (response.status === 401) clearAuth();
-
-    throw new Error(data.message || "Unable to change password.");
-  }
-
-  return data;
-};
-
-
-/* =========================================================
-   COMMON API RESPONSE HANDLER
-========================================================= */
-
-const handleApiResponse = async (response, fallback) => {
-  const text = await response.text();
-
-  let data = text;
-
+export const login = async (credentials) => {
   try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    // Backend may return plain text.
-  }
-
-  if (!response.ok) {
-    const message =
-      typeof data === "string"
-        ? data
-        : data?.message || data?.detail || data?.error;
-
-    throw new Error(message || fallback);
-  }
-
-  return data;
-};
-
-/* =========================================================
-   FORGOT PASSWORD - SEND OTP
-========================================================= */
-
-export const forgotPassword = async (email) => {
-  const response = await fetch(`${API_URL}/forgot-password`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email: email.trim().toLowerCase(),
-    }),
-  });
-
-  return handleApiResponse(
-    response,
-    "Unable to send password reset OTP."
-  );
-};
-
-/* =========================================================
-   VERIFY PASSWORD RESET OTP
-========================================================= */
-
-export const passwordVerifyOtp = async (email, otp) => {
-  const response = await fetch(
-    `${API_URL}/password-verify-otp`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: email.trim().toLowerCase(),
-        otp: otp.trim(),
-      }),
-    }
-  );
-
-  return handleApiResponse(
-    response,
-    "Invalid OTP. Please try again."
-  );
-};
-
-/* =========================================================
-   RESET PASSWORD
-========================================================= */
-
-export const resetPassword = async (
-    email,
-    newPassword,
-    resetToken
-) => {
-    const response = await fetch(`${API_URL}/reset-password`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            newPassword,
-            resetToken
-        })
+    const response = await axiosInstance.post("/api/auth/login", {
+      email: credentials.email.trim().toLowerCase(),
+      password: credentials.password,
     });
 
-    return handleApiResponse(
-        response,
-        "Unable to reset password."
+    const data = response.data;
+
+    const authData = {
+      ...data,
+      role: normalizeRole(data.role),
+    };
+
+    saveAuth(authData);
+
+    return authData;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(
+        error,
+        "Login failed. Please check your credentials."
+      )
     );
+  }
 };
 
-/* =========================================================
-   DEFAULT AUTH SERVICE EXPORT
-========================================================= */
+// ==================== CURRENT USER ====================
+
+export const getCurrentUser = async () => {
+  try {
+    const auth = getAuth();
+
+    if (!auth?.accessToken) {
+      throw new Error("Please login first.");
+    }
+
+    const response = await axiosInstance.get("/api/auth/me");
+
+    const data = response.data;
+
+    const updatedAuth = {
+      ...auth,
+      userId: data.userId ?? auth.userId,
+      companyId: data.companyId ?? auth.companyId ?? null,
+      fullName: data.fullName ?? auth.fullName,
+      email: data.email ?? auth.email,
+      role: normalizeRole(data.role ?? auth.role),
+    };
+
+    saveAuth(updatedAuth);
+
+    return updatedAuth;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, "Unable to fetch user details.")
+    );
+  }
+};
+
+// ==================== CHANGE PASSWORD ====================
+
+export const changePassword = async (passwordData) => {
+  try {
+    const response = await axiosInstance.put(
+      "/api/auth/change-password",
+      passwordData
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, "Unable to change password.")
+    );
+  }
+};
+
+// ==================== FORGOT PASSWORD ====================
+
+export const forgotPassword = async (email) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/auth/forgot-password",
+      {
+        email: email.trim().toLowerCase(),
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, "Unable to send password reset OTP.")
+    );
+  }
+};
+
+// ==================== VERIFY PASSWORD OTP ====================
+
+export const passwordVerifyOtp = async (email, otp) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/auth/password-verify-otp",
+      {
+        email: email.trim().toLowerCase(),
+        otp: otp.trim(),
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, "Invalid OTP. Please try again.")
+    );
+  }
+};
+
+// ==================== RESET PASSWORD ====================
+
+export const resetPassword = async (
+  email,
+  newPassword,
+  resetToken
+) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/auth/reset-password",
+      {
+        email: email.trim().toLowerCase(),
+        newPassword,
+        resetToken,
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      getErrorMessage(error, "Unable to reset password.")
+    );
+  }
+};
+
+// ==================== DEFAULT EXPORT ====================
 
 const authService = {
+  login,
+  getAuth,
+  getToken,
+  saveAuth,
+  clearAuth,
+  isAuthenticated,
+  hasRole,
+  getDashboardPath,
+  getCurrentUser,
+  changePassword,
   forgotPassword,
   passwordVerifyOtp,
   resetPassword,
 };
 
 export default authService;
-
-

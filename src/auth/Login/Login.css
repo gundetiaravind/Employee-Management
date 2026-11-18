@@ -20,6 +20,11 @@
   color: var(--muted);
   font-size: 14px;
   font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-back a:hover {
+  color: var(--primary);
 }
 
 .auth-container {
@@ -49,7 +54,9 @@
   font-weight: 800;
 }
 
-.auth-brand h2 span { color: var(--primary); }
+.auth-brand h2 span {
+  color: var(--primary);
+}
 
 .auth-brand p {
   color: var(--muted);
@@ -65,7 +72,9 @@
   box-shadow: var(--shadow);
 }
 
-.auth-heading { margin-bottom: 28px; }
+.auth-heading {
+  margin-bottom: 28px;
+}
 
 .auth-heading h1 {
   font-family: Manrope, sans-serif;
@@ -113,7 +122,9 @@
   font-size: 13px;
 }
 
-.auth-input input::placeholder { color: var(--muted); }
+.auth-input input::placeholder {
+  color: var(--muted);
+}
 
 .password-toggle {
   border: 0;
@@ -124,23 +135,18 @@
   place-items: center;
 }
 
+.password-toggle:hover {
+  color: var(--primary);
+}
+
 .auth-options {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
   margin: 19px 0;
   font-size: 12px;
 }
-
-.remember-option {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-}
-
-.remember-option input { accent-color: var(--primary); }
 
 .forgot-button {
   border: 0;
@@ -149,6 +155,11 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
+  text-decoration: none;
+}
+
+.forgot-button:hover {
+  text-decoration: underline;
 }
 
 .auth-submit {
@@ -165,10 +176,17 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: .2s;
+  transition: 0.2s;
 }
 
-.auth-submit:hover { background: var(--primary-hover); }
+.auth-submit:hover {
+  background: var(--primary-hover);
+}
+
+.auth-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 
 .auth-message {
   color: #d97706;
@@ -187,6 +205,11 @@
 .auth-switch a {
   color: var(--primary);
   font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
 }
 
 .auth-copyright {
@@ -196,13 +219,10 @@
   margin-top: 25px;
 }
 
-@media (max-width: 480px) {
-  .auth-page { padding: 18px; }
-  .auth-card { padding: 25px 20px; }
-  .auth-container { margin-top: 28px; }
-}
+/* Demo credentials */
+
 .demo-credentials {
-  margin-top: 20px;
+  margin-top: 24px;
   padding: 16px;
   border: 1px dashed var(--border);
   border-radius: 10px;
@@ -219,22 +239,6 @@
   color: var(--muted);
   font-size: 12px;
   overflow-wrap: anywhere;
-}
-.demo-credentials {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-}
-
-.demo-credentials h4 {
-  color: var(--text);
-  margin-bottom: 6px;
-}
-
-.demo-credentials p {
-  color: var(--muted);
-  font-size: 13px;
-  margin-bottom: 14px;
 }
 
 .demo-login-button {
@@ -257,4 +261,20 @@
 .demo-login-button:hover {
   border-color: var(--primary);
   color: var(--primary);
+}
+
+/* Responsive layout */
+
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 18px;
+  }
+
+  .auth-card {
+    padding: 25px 20px;
+  }
+
+  .auth-container {
+    margin-top: 28px;
+  }
 }

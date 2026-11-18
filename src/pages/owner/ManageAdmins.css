@@ -12,6 +12,13 @@
   margin-bottom: 25px;
 }
 
+.admins-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .admins-eyebrow {
   color: var(--owner-primary);
   font-size: 10px;
@@ -32,11 +39,10 @@
   margin: 0;
 }
 
-.admins-primary-btn {
+.admins-primary-btn,
+.admins-secondary-btn {
   border: 0;
   border-radius: 9px;
-  background: var(--owner-primary);
-  color: white;
   padding: 11px 16px;
   display: inline-flex;
   align-items: center;
@@ -48,9 +54,28 @@
   transition: opacity 0.2s, transform 0.2s;
 }
 
-.admins-primary-btn:hover {
+.admins-primary-btn {
+  background: var(--owner-primary);
+  color: white;
+}
+
+.admins-secondary-btn {
+  background: var(--owner-soft);
+  color: var(--owner-primary);
+  border: 1px solid var(--owner-border);
+}
+
+.admins-primary-btn:hover,
+.admins-secondary-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+.admins-primary-btn:disabled,
+.admins-secondary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .admins-summary {
@@ -78,6 +103,7 @@
   place-items: center;
   color: var(--owner-primary);
   background: var(--owner-soft);
+  flex-shrink: 0;
 }
 
 .admins-summary-icon.active-icon {
@@ -87,6 +113,11 @@
 
 .admins-summary-icon.inactive-icon {
   color: #d18a26;
+  background: rgba(209, 138, 38, 0.12);
+}
+
+.admins-summary-icon.pending-icon {
+  color: #b7791f;
   background: rgba(209, 138, 38, 0.12);
 }
 
@@ -106,6 +137,11 @@
   border: 1px solid var(--owner-border);
   border-radius: 13px;
   overflow: hidden;
+  margin-bottom: 22px;
+}
+
+.invitation-table-card {
+  margin-top: 22px;
 }
 
 .admins-toolbar {
@@ -190,6 +226,10 @@
   min-width: 760px;
 }
 
+.invitations-table {
+  min-width: 800px;
+}
+
 .admins-table th {
   background: var(--owner-bg);
   color: var(--owner-muted);
@@ -243,7 +283,8 @@
   font-size: 11px;
 }
 
-.admin-status {
+.admin-status,
+.invitation-status {
   display: inline-flex;
   align-items: center;
   border-radius: 20px;
@@ -252,14 +293,31 @@
   font-weight: 700;
 }
 
-.status-active {
+.status-active,
+.invitation-status-accepted {
   color: #15945f;
   background: rgba(21, 148, 95, 0.12);
 }
 
-.status-inactive {
+.status-inactive,
+.invitation-status-expired {
   color: #c27b21;
   background: rgba(194, 123, 33, 0.13);
+}
+
+.invitation-status-pending {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.invitation-status-revoked {
+  color: #dc4444;
+  background: rgba(220, 68, 68, 0.12);
+}
+
+.invitation-status-unknown {
+  color: var(--owner-muted);
+  background: var(--owner-soft);
 }
 
 .admin-actions {
@@ -285,9 +343,62 @@
   background: var(--owner-soft);
 }
 
+.admin-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .admin-actions .delete-action:hover {
   color: #dc4444;
   background: rgba(220, 68, 68, 0.1);
+}
+
+.invitation-revoke-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(220, 68, 68, 0.25);
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: #dc4444;
+  background: rgba(220, 68, 68, 0.07);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.invitation-revoke-btn:hover {
+  background: rgba(220, 68, 68, 0.14);
+}
+
+.invitation-revoke-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.invitation-no-action {
+  color: var(--owner-muted);
+}
+
+.invitation-error {
+  padding: 13px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: #dc4444;
+  font-size: 12px;
+  border-bottom: 1px solid var(--owner-border);
+}
+
+.invitation-error button {
+  border: 1px solid var(--owner-border);
+  border-radius: 7px;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--owner-primary);
+  cursor: pointer;
 }
 
 .admins-table-footer {
@@ -305,6 +416,8 @@
   align-items: center;
   gap: 8px;
   color: var(--owner-muted);
+  white-space: normal;
+  text-align: center;
 }
 
 .admins-empty strong {
@@ -362,6 +475,11 @@
   cursor: pointer;
 }
 
+.admin-modal-header button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .admin-form {
   padding: 21px 22px;
   display: grid;
@@ -382,11 +500,30 @@
   border-color: var(--owner-primary);
 }
 
+.invitation-info {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 9px;
+  background: var(--owner-soft);
+  color: var(--owner-primary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.invitation-info svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 .admin-form-error {
   grid-column: 1 / -1;
   margin: 0;
   color: #dc4444;
   font-size: 12px;
+  line-height: 1.5;
 }
 
 .admin-form-actions {
@@ -405,6 +542,11 @@
   padding: 10px 16px;
   cursor: pointer;
   font-size: 12px;
+}
+
+.admin-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .admin-details {
@@ -478,6 +620,14 @@
     flex-direction: column;
   }
 
+  .admins-heading-actions {
+    width: 100%;
+  }
+
+  .admins-heading-actions button {
+    flex: 1;
+  }
+
   .admins-summary {
     grid-template-columns: 1fr;
   }
@@ -497,7 +647,16 @@
   }
 
   .admin-form-actions,
-  .admin-form-error {
+  .admin-form-error,
+  .invitation-info {
     grid-column: 1;
+  }
+
+  .admin-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .admin-form-actions button {
+    width: 100%;
   }
 }

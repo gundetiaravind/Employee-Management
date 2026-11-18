@@ -12,6 +12,12 @@
   margin-bottom: 25px;
 }
 
+.employees-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .employees-eyebrow {
   color: var(--owner-primary);
   font-size: 10px;
@@ -51,6 +57,55 @@
 .employees-primary-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+.employees-primary-btn:disabled,
+.employee-refresh-btn:disabled,
+.employee-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.employee-refresh-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--owner-border);
+  border-radius: 9px;
+  background: var(--owner-card);
+  color: var(--owner-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.employee-refresh-btn:hover {
+  background: var(--owner-soft);
+  color: var(--owner-primary);
+}
+
+.employee-api-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 15px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(220, 68, 68, 0.25);
+  border-radius: 9px;
+  background: rgba(220, 68, 68, 0.08);
+  color: #dc4444;
+  font-size: 12px;
+}
+
+.employee-api-error button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }
 
 .employees-summary {
@@ -106,6 +161,7 @@
   border: 1px solid var(--owner-border);
   border-radius: 13px;
   overflow: hidden;
+  margin-bottom: 22px;
 }
 
 .employees-toolbar {
@@ -284,7 +340,8 @@
   background: var(--owner-soft);
 }
 
-.employee-actions .employee-delete-action:hover {
+.employee-actions .employee-delete-action:hover,
+.employee-actions .invitation-revoke-action:hover {
   color: #dc4444;
   background: rgba(220, 68, 68, 0.1);
 }
@@ -314,6 +371,68 @@
   font-size: 12px;
 }
 
+.employee-invitations-card {
+  margin-top: 22px;
+}
+
+.invitation-count {
+  flex-shrink: 0;
+  padding: 7px 11px;
+  border-radius: 20px;
+  background: var(--owner-soft);
+  color: var(--owner-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.invitations-table {
+  min-width: 1050px;
+}
+
+.invitation-avatar {
+  color: #4777c8;
+  background: rgba(71, 119, 200, 0.12);
+}
+
+.invitation-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.2px;
+}
+
+.invitation-status-pending {
+  color: #b7791f;
+  background: rgba(209, 138, 38, 0.13);
+}
+
+.invitation-status-accepted {
+  color: #15945f;
+  background: rgba(21, 148, 95, 0.12);
+}
+
+.invitation-status-expired {
+  color: #bd5555;
+  background: rgba(220, 68, 68, 0.1);
+}
+
+.invitation-status-revoked {
+  color: var(--owner-muted);
+  background: var(--owner-soft);
+}
+
+.invitation-no-action {
+  color: var(--owner-muted);
+}
+
+.invitation-empty {
+  min-height: 150px;
+}
+
 .employee-modal-overlay {
   position: fixed;
   inset: 0;
@@ -341,6 +460,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 15px;
 }
 
 .employee-modal-header h2 {
@@ -352,6 +472,7 @@
   color: var(--owner-muted);
   font-size: 12px;
   margin: 0;
+  line-height: 1.5;
 }
 
 .employee-modal-header button {
@@ -359,6 +480,11 @@
   background: transparent;
   color: var(--owner-muted);
   cursor: pointer;
+}
+
+.employee-modal-header button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .employee-form {
@@ -374,6 +500,7 @@
   gap: 7px;
   font-size: 12px;
   font-weight: 650;
+  min-width: 0;
 }
 
 .employee-form input:focus,
@@ -381,11 +508,32 @@
   border-color: var(--owner-primary);
 }
 
+.employee-form input::placeholder {
+  color: var(--owner-muted);
+  opacity: 0.75;
+}
+
+.employee-form-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: var(--owner-soft);
+  color: var(--owner-muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.employee-form-full {
+  grid-column: 1 / -1;
+}
+
 .employee-form-error {
   grid-column: 1 / -1;
   margin: 0;
   color: #dc4444;
   font-size: 12px;
+  line-height: 1.5;
 }
 
 .employee-form-actions {
@@ -404,6 +552,11 @@
   padding: 10px 16px;
   cursor: pointer;
   font-size: 12px;
+}
+
+.employee-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .employee-details {
@@ -480,6 +633,10 @@
     flex-direction: column;
   }
 
+  .employees-heading-actions {
+    width: 100%;
+  }
+
   .employees-summary {
     grid-template-columns: 1fr;
   }
@@ -501,7 +658,21 @@
   }
 
   .employee-form-actions,
-  .employee-form-error {
+  .employee-form-error,
+  .employee-form-full,
+  .employee-form-hint {
     grid-column: 1;
+  }
+
+  .employee-modal-overlay {
+    padding: 10px;
+  }
+
+  .employee-modal {
+    max-height: 95vh;
+  }
+
+  .employee-form {
+    padding: 18px;
   }
 }

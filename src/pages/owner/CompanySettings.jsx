@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Building2,
@@ -10,24 +9,12 @@ import {
   RotateCcw,
   CheckCircle2,
 } from "lucide-react";
-const AUTH_KEY = "orgconnect-auth";
 import axiosInstance from "../../utils/axiosInstance";
 import "./CompanySettings.css";
-// Read authenticated user
-  const user = (() => {
-    try {
-      return JSON.parse(
-        sessionStorage.getItem(AUTH_KEY) || "null"
-      );
-    } catch {
-      return null;
-    }
-  })();
-// const COMPANY_ID = 1;
-const COMPANY_ID = user?.companyId;
+
 const API = {
-  getSettings: `/api/company/settings?companyId=${COMPANY_ID}`,
-  updateSettings: `/api/company/settings?companyId=${COMPANY_ID}`,
+  getSettings: "/api/company/settings",
+  updateSettings: "/api/company/settings",
 };
 
 const emptyCompany = {
@@ -50,19 +37,18 @@ const getErrorMessage = (error) =>
   error?.message ||
   "Something went wrong. Please try again.";
 
-// Convert backend response into the frontend form structure.
 const mapCompanyResponse = (data) => ({
-  companyName: data.companyName || "",
-  companyEmail: data.companyEmail || "",
-  contactNumber: data.contactNumber || "",
-  website: data.website || "",
-  industry: data.industry || "",
-  companyType: data.companyType || "",
-  address: data.address || "",
-  city: data.city || "",
-  state: data.state || "",
-  country: data.country || "",
-  pinCode: data.pinCode || "",
+  companyName: data?.companyName || "",
+  companyEmail: data?.companyEmail || "",
+  contactNumber: data?.contactNumber || "",
+  website: data?.website || "",
+  industry: data?.industry || "",
+  companyType: data?.companyType || "",
+  address: data?.address || "",
+  city: data?.city || "",
+  state: data?.state || "",
+  country: data?.country || "",
+  pinCode: data?.pinCode || "",
 });
 
 function CompanySettings() {
@@ -73,7 +59,6 @@ function CompanySettings() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // GET: Load company settings
   const fetchCompanySettings = async () => {
     try {
       setLoading(true);
@@ -81,7 +66,6 @@ function CompanySettings() {
       setSuccessMessage("");
 
       const response = await axiosInstance.get(API.getSettings);
-
       const data = response.data?.company || response.data;
 
       setCompany(mapCompanyResponse(data));
@@ -109,7 +93,6 @@ function CompanySettings() {
     setError("");
   };
 
-  // PUT: Update company settings
   const saveSettings = async (event) => {
     event.preventDefault();
 
@@ -117,45 +100,32 @@ function CompanySettings() {
     setSuccessMessage("");
 
     const phone = company.contactNumber.trim();
-    const pin = company.pinCode.trim();
 
     if (!/^[6-9]\d{9}$/.test(phone)) {
       setError("Enter a valid 10-digit mobile number.");
       return;
     }
 
-    if (pin && !/^\d{6}$/.test(pin)) {
-      setError("Enter a valid 6-digit PIN code.");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      // Use backend property names in the request.
+      // These are the four fields supported by the backend DTO.
       const payload = {
         companyName: company.companyName.trim(),
-        companyEmail: company.companyEmail.trim(),
         contactNumber: phone,
-        website: company.website.trim() || null,
-        industry: company.industry.trim(),
-        companyType: company.companyType.trim(),
         address: company.address.trim(),
-        city: company.city.trim(),
-        state: company.state.trim(),
-        country: company.country.trim(),
-        pinCode: pin,
+        website: company.website.trim(),
       };
 
-      const response = await axiosInstance.put(
-        API.updateSettings,
-        payload
-      );
+      const response = await axiosInstance.put(API.updateSettings, payload);
 
       const data = response.data?.company || response.data;
 
-      // Use the latest values returned by the backend.
-      setCompany(mapCompanyResponse(data));
+      setCompany((current) => ({
+        ...current,
+        ...mapCompanyResponse(data),
+      }));
+
       setSaved(true);
       setSuccessMessage("Company settings updated successfully.");
     } catch (err) {
@@ -166,7 +136,6 @@ function CompanySettings() {
     }
   };
 
-  // Reset the form by fetching the latest saved backend values.
   const resetSettings = () => {
     fetchCompanySettings();
     setSaved(false);
@@ -197,9 +166,7 @@ function CompanySettings() {
             ORGANIZATION MANAGEMENT
           </span>
           <h1>Company Settings</h1>
-          <p>
-            Manage your organization information and company preferences.
-          </p>
+          <p>Manage your organization information and company preferences.</p>
         </div>
       </div>
 
@@ -242,33 +209,20 @@ function CompanySettings() {
             </label>
 
             <label>
-              Industry *
-              <select
-                name="industry"
+              Industry
+              <input
                 value={company.industry}
-                onChange={updateField}
-                required
-              >
-                <option value="">Select Industry</option>
-                <option value="Information Technology">
-                  Information Technology
-                </option>
-                <option value="Finance">Finance</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="Education">Education</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="Retail">Retail</option>
-                <option value="Other">Other</option>
-              </select>
+                disabled
+                title="Industry editing is not supported by the current backend."
+              />
             </label>
 
             <label>
               Company Type
               <input
-                name="companyType"
                 value={company.companyType}
-                onChange={updateField}
-                placeholder="Example: Private Limited"
+                disabled
+                title="Company type editing is not supported by the current backend."
               />
             </label>
 
@@ -302,17 +256,10 @@ function CompanySettings() {
 
           <div className="company-form-grid">
             <label>
-              Company Email *
+              Company Email
               <div className="company-input-icon">
                 <Mail size={16} />
-                <input
-                  type="email"
-                  name="companyEmail"
-                  value={company.companyEmail}
-                  onChange={updateField}
-                  placeholder="company@example.com"
-                  required
-                />
+                <input type="email" value={company.companyEmail} disabled />
               </div>
             </label>
 
@@ -361,50 +308,23 @@ function CompanySettings() {
             </label>
 
             <label>
-              City *
-              <input
-                name="city"
-                value={company.city}
-                onChange={updateField}
-                placeholder="Enter city"
-                required
-              />
+              City
+              <input value={company.city} disabled />
             </label>
 
             <label>
-              State *
-              <input
-                name="state"
-                value={company.state}
-                onChange={updateField}
-                placeholder="Enter state"
-                required
-              />
+              State
+              <input value={company.state} disabled />
             </label>
 
             <label>
-              Country *
-              <input
-                name="country"
-                value={company.country}
-                onChange={updateField}
-                placeholder="Enter country"
-                required
-              />
+              Country
+              <input value={company.country} disabled />
             </label>
 
             <label>
-              PIN Code *
-              <input
-                name="pinCode"
-                value={company.pinCode}
-                onChange={updateField}
-                placeholder="6-digit PIN code"
-                inputMode="numeric"
-                maxLength={6}
-                pattern="[0-9]{6}"
-                required
-              />
+              PIN Code
+              <input value={company.pinCode} disabled />
             </label>
           </div>
         </section>
@@ -428,11 +348,7 @@ function CompanySettings() {
             Reset
           </button>
 
-          <button
-            type="submit"
-            className="company-save-btn"
-            disabled={saving}
-          >
+          <button type="submit" className="company-save-btn" disabled={saving}>
             <Save size={17} />
             {saving ? "Saving..." : "Save Changes"}
           </button>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, Navigate, useNavigate } from "react-router-dom";
+
 import {
   LayoutDashboard,
   Users,
@@ -18,6 +19,8 @@ import {
 } from "lucide-react";
 
 import { useTheme } from "../../context/ThemeContext";
+import { getAuth, clearAuth } from "../../services/authService";
+
 import "./AdminDashboard.css";
 
 const navigation = [
@@ -26,35 +29,35 @@ const navigation = [
   { label: "Departments", path: "/admin/departments", icon: Building2 },
   { label: "Attendance", path: "/admin/attendance", icon: CalendarCheck },
   { label: "Leave Management", path: "/admin/leaves", icon: ClipboardList },
-  { label: "Work Allocation", path: "/admin/work-allocation", icon: BriefcaseBusiness },
+  {
+    label: "Work Allocation",
+    path: "/admin/work-allocation",
+    icon: BriefcaseBusiness,
+  },
   { label: "Payroll", path: "/admin/payroll", icon: Wallet },
   { label: "Reports", path: "/admin/reports", icon: ChartNoAxesCombined },
   { label: "My Profile", path: "/admin/profile", icon: UserRound },
 ];
-
-function getSessionUser() {
-  try {
-    return JSON.parse(sessionStorage.getItem("OrgConnect-demo-user") || "null");
-  } catch {
-    return null;
-  }
-}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const user = getSessionUser();
+  const user = getAuth();
 
-  if (!user || user.role !== "ADMIN") {
+  const userRole = String(user?.role || "")
+    .replace(/^ROLE_/, "")
+    .toUpperCase();
+
+  if (!user?.accessToken || userRole !== "ADMIN") {
     return <Navigate to="/login" replace />;
   }
 
-  const adminName = user.name || "Company Admin";
+  const adminName = user.fullName || user.name || "Company Admin";
 
   const handleLogout = () => {
-    sessionStorage.removeItem("OrgConnect-demo-user");
+    clearAuth();
     navigate("/login", { replace: true });
   };
 
@@ -148,9 +151,12 @@ export function AdminModulePlaceholder({ title, description }) {
       <div className="admin-placeholder-icon">
         <Building2 size={25} />
       </div>
+
       <span className="admin-eyebrow">ADMIN WORKSPACE</span>
+
       <h1>{title}</h1>
       <p>{description}</p>
+
       <div className="admin-placeholder-note">
         This module will be implemented in the next development step.
       </div>
