@@ -5,6 +5,9 @@ import com.ems.auth.dto.LoginRequest;
 import com.ems.auth.dto.LoginResponse;
 import com.ems.auth.dto.CurrentUserResponse;
 import com.ems.auth.dto.ChangePasswordRequest;
+import com.ems.auth.dto.ForgotPasswordRequest;
+import com.ems.auth.dto.PasswordVerifyOtpRequest;
+import com.ems.auth.dto.ResetPasswordRequest;
 import com.ems.auth.service.AuthService;
 
 import jakarta.validation.Valid;
@@ -59,4 +62,41 @@ public class AuthController {
         Map.of("message", "Password changed successfully"));
   }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+
+        authService.forgotPassword(request);
+
+        return ResponseEntity.ok(
+                Map.of("message",
+                        "If the email is registered, password reset instructions will be sent.")
+        );
+    }
+
+    @PostMapping("/password-verify-otp")
+    public ResponseEntity<Map<String, String>> passwordVerifyOtp(
+            @Valid @RequestBody PasswordVerifyOtpRequest request) {
+
+        String resetToken = authService.passwordVerifyOtp(request);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message", "OTP verified successfully.",
+                        "resetToken", resetToken
+                )
+        );
+    }
+
+ 
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+
+        authService.resetPassword(request);
+
+        return ResponseEntity.ok(
+                Map.of("message", "Password reset successfully.")
+        );
+    }
 }

@@ -47,4 +47,6 @@ public class EmailVerificationController {
                 "A new verification OTP has been sent to your email."
         );
     }
+
+    
 }

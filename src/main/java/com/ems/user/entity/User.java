@@ -10,6 +10,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -66,4 +67,25 @@ public class User {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    @Column(name = "password_reset_otp_hash", length = 255)
+    private String passwordResetOtpHash;
+
+    @Column(name = "password_reset_otp_expiry")
+    private LocalDateTime passwordResetOtpExpiry;
+
+    @Column(name = "password_reset_otp_attempts")
+    private Integer passwordResetOtpAttempts;
+
+    @Column(name = "password_reset_otp_created_at")
+    private LocalDateTime passwordResetOtpCreatedAt;
+
+    @Column(name = "password_reset_verified")
+    private Boolean passwordResetVerified;
+
+    @Column(name = "password_reset_token_hash", length = 255)
+    private String passwordResetTokenHash;
+
+    @Column(name = "password_reset_token_expiry")
+    private LocalDateTime passwordResetTokenExpiry;
 }

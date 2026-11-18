@@ -136,6 +136,7 @@ public class SecurityConfig {
                 	    "/api/auth/verify-email",
                 	    "/api/auth/resend-verification",
                 	    "/api/auth/forgot-password",
+                          "/api/auth/password-verify-otp",
                 	    "/api/auth/reset-password",
                        // "/static/uploads/uploads/company-logos/**",
                 	    "/actuator/health",

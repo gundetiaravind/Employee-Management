@@ -92,4 +92,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        String path = request.getServletPath();
+
+        return path.equals("/api/auth/forgot-password")
+                || path.equals("/api/auth/password-verify-otp")
+                || path.equals("/api/auth/reset-password");
+    }
 }
