@@ -12,6 +12,7 @@ import {
 import PublicLayout from "../../public-site/layouts/PublicLayout";
 import Login from "../../auth/Login/Login";
 import Register from "../../auth/Register/Register";
+import ForgotPassword from "../../auth/ForgotPassword";
 import CompanyRegistration from "../../company/CompanyRegistration/CompanyRegistration";
 import EmployeeRegistration from "../../auth/EmployeeRegistration/EmployeeRegistration";
 import EmailVerification from "../../auth/EmailVerification/EmailVerification";
@@ -119,7 +120,10 @@ export default function AppRoutes() {
       <Route path="/" element={<PublicLayout />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-
+       <Route
+              path="/forgot-password"
+              element={<ForgotPassword />}
+            />
       <Route
         path="/register/company"
         element={<CompanyRegistration />}

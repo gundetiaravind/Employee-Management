@@ -199,13 +199,12 @@ export default function Login() {
               <button
                 type="button"
                 className="forgot-button"
-                onClick={() =>
-                  setError("Password recovery will be added later.")
-                }
+               
               >
-                Forgot password?
+                <Link to="/forgot-password">forgotPassword</Link>
               </button>
             </div>
+            
 
             {error && (
               <p className="auth-message" role="alert">
