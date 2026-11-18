@@ -50,7 +50,8 @@ public class SecurityConfig {
         this.accessDeniedHandler = accessDeniedHandler;
     }
 
-    // CORS configuration
+    // ==================== CORS CONFIGURATION ====================
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
@@ -59,9 +60,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(
                 List.of(
                         "http://localhost:5173",
-                        "http://127.0.0.1:5173"
-                )
-        );
+                        "http://127.0.0.1:5173"));
 
         configuration.setAllowedMethods(
                 List.of(
@@ -70,37 +69,33 @@ public class SecurityConfig {
                         "PUT",
                         "PATCH",
                         "DELETE",
-                        "OPTIONS"
-                )
-        );
+                        "OPTIONS"));
 
         configuration.setAllowedHeaders(
                 List.of(
                         "Authorization",
                         "Content-Type",
-                        "Accept"
-                )
-        );
+                        "Accept",
+                        "X-Company-Id"));
 
         configuration.setExposedHeaders(
-                List.of("Authorization")
-        );
+                List.of("Authorization"));
 
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
     }
 
+    // ==================== AUTHENTICATION PROVIDER ====================
+
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
 
-        DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider(customUserDetailsService);
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(customUserDetailsService);
 
         provider.setPasswordEncoder(passwordEncoder);
 
@@ -114,70 +109,98 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
+    // ==================== SECURITY FILTER CHAIN ====================
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
             throws Exception {
 
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-            .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable())
 
-            .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
 
-                // Allow CORS preflight requests
-            		.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            		.requestMatchers("/error").permitAll()
+                        // CORS preflight requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**")
+                        .permitAll()
 
-                // Public endpoints
-                .requestMatchers(
-                	    "/api/auth/register",
-                	    "/api/auth/login",
-                	    "/api/auth/verify-email",
-                	    "/api/auth/resend-verification",
-                	    "/api/auth/forgot-password",
-                          "/api/auth/password-verify-otp",
-                	    "/api/auth/reset-password",
-                       // "/static/uploads/uploads/company-logos/**",
-                	    "/actuator/health",
-                        "/uploads/**"
-                	).permitAll()
+                        .requestMatchers("/error")
+                        .permitAll()
 
-                // Platform Manager APIs
-                .requestMatchers("/api/platform/**")
-                .hasRole("PLATFORM_MANAGER")
+                        // Public authentication and registration endpoints
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/verify-email",
+                                "/api/auth/resend-verification",
+                                "/api/auth/forgot-password",
+                                "/api/auth/password-verify-otp",
+                                "/api/auth/reset-password",
+                                "/api/invitations/validate",
+                                "/api/invitations/accept",
+                                "/actuator/health",
+                                "/uploads/**")
+                        .permitAll()
 
-                // Company Owner APIs
-                .requestMatchers("/api/company-owner/**")
-                .hasRole("COMPANY_OWNER")
+                        // Invitation management:
+                        // Company Owner and Admin
+                        .requestMatchers("/api/invitations/**")
+                        .hasAnyRole("COMPANY_OWNER", "ADMIN")
 
-                // Admin APIs
-                .requestMatchers("/api/admin/**")
-                .hasRole("ADMIN")
+                        // Platform Manager APIs
+                        .requestMatchers("/api/platform/**")
+                        .hasRole("PLATFORM_MANAGER")
 
-                // Employee APIs
-                .requestMatchers("/api/employee/**")
-                .hasRole("EMPLOYEE")
+                        // Admin management:
+                        // Company Owner only
+                        .requestMatchers(
+                                "/api/company-owner/admins/**",
+                                "/api/company/admins/**")
+                        .hasRole("COMPANY_OWNER")
 
-                // All remaining APIs require authentication
-                .anyRequest().authenticated()
-            )
+                        // Employee management through company-owner routes:
+                        // Company Owner and Admin
+                        .requestMatchers("/api/company-owner/employees/**")
+                        .hasAnyRole("COMPANY_OWNER", "ADMIN")
 
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                        // Other Company Owner APIs
+                        .requestMatchers("/api/company-owner/**")
+                        .hasRole("COMPANY_OWNER")
 
-            .authenticationProvider(authenticationProvider())
+                        // Admin-specific APIs
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
 
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint(authenticationEntryPoint)
-                .accessDeniedHandler(accessDeniedHandler)
-            )
+                        // Shared company employee APIs:
+                        // Company Owner and Admin
+                        .requestMatchers("/api/company/employees/**")
+                        .hasAnyRole("COMPANY_OWNER", "ADMIN")
 
-            .addFilterBefore(
-                jwtAuthenticationFilter,
-                UsernamePasswordAuthenticationFilter.class
-            );
+                        // Employee self-service APIs
+                        .requestMatchers("/api/employees/**")
+                        .hasRole("EMPLOYEE")
+
+                        // All remaining APIs require authentication
+                        .anyRequest()
+                        .authenticated())
+
+                // Stateless JWT authentication
+                .sessionManagement(session -> session.sessionCreationPolicy(
+                        SessionCreationPolicy.STATELESS))
+
+                .authenticationProvider(authenticationProvider())
+
+                // Exception handling
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
+
+                // JWT authentication filter
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
