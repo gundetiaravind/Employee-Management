@@ -1,33 +1,41 @@
+
 package com.ems.project.mapper;
+
+import org.springframework.stereotype.Component;
 
 import com.ems.project.dto.EmployeeProjectResponse;
 import com.ems.project.entity.EmployeeProject;
+import com.ems.project.entity.Project;
 
+@Component
 public class EmployeeProjectMapper {
 
-    public static EmployeeProject toEntity(
-            Long employeeId, Long projectId, String tenantId) {
+    public EmployeeProjectResponse toResponse(
+            EmployeeProject assignment, Project project) {
 
-        EmployeeProject assignment = new EmployeeProject();
-
-        assignment.setEmployeeId(employeeId);
-        assignment.setProjectId(projectId);
-        assignment.setTenantId(tenantId);
-
-        return assignment;
-    }
-
-    public static EmployeeProjectResponse toResponse(EmployeeProject assignment) {
-
-        EmployeeProjectResponse response = new EmployeeProjectResponse();
+        EmployeeProjectResponse response =
+                new EmployeeProjectResponse();
 
         response.setId(assignment.getId());
         response.setEmployeeId(assignment.getEmployeeId());
         response.setProjectId(assignment.getProjectId());
-        response.setTenantId(assignment.getTenantId());
-        response.setStartDate(assignment.getStartDate());
-        response.setEndDate(assignment.getEndDate());
-        response.setAssignmentStatus(assignment.getAssignmentStatus());
+
+        if (project != null) {
+            response.setProjectCode(project.getProjectCode());
+            response.setProjectName(project.getProjectName());
+        }
+
+        response.setProjectStartDate(assignment.getProjectStartDate());
+        response.setProjectEndDate(assignment.getProjectEndDate());
+
+        response.setAssignmentStatus(
+                assignment.getAssignmentStatus());
+
+        response.setReportingManagerEmployeeCode(
+                assignment.getReportingManagerEmployeeCode());
+
+        response.setReportingManagerEmail(
+                assignment.getReportingManagerEmail());
 
         return response;
     }
