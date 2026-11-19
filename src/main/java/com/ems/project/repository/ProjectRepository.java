@@ -12,10 +12,10 @@ import com.ems.project.entity.Project;
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Long> {
 
-    List<Project> findByTenantId(String tenantId);
+    List<Project> findAllByTenantId(String tenantId);
 
     Optional<Project> findByIdAndTenantId(Long id, String tenantId);
 
-    Optional<Project> findByProjectCodeAndTenantId(
+    boolean existsByProjectCodeAndTenantId(
             String projectCode, String tenantId);
 }
