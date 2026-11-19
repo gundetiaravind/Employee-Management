@@ -2,13 +2,9 @@
 package com.ems.project.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "employee_projects")
@@ -18,8 +14,8 @@ public class EmployeeProject {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "tenant_id", nullable = false)
-    private String tenantId;
+    @Column(name = "assignment_status", nullable = false)
+    private String assignmentStatus = "ACTIVE";
 
     @Column(name = "employee_id", nullable = false)
     private Long employeeId;
@@ -27,17 +23,51 @@ public class EmployeeProject {
     @Column(name = "project_id", nullable = false)
     private Long projectId;
 
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
+    @Column(name = "project_start_date", nullable = false)
+    private LocalDate projectStartDate;
 
-    @Column(name = "end_date")
-    private LocalDate endDate;
+    @Column(name = "project_end_date")
+    private LocalDate projectEndDate;
 
-    @Column(name = "assignment_status", nullable = false)
-    private String assignmentStatus;
+    @Column(
+        name = "reporting_manager_employee_code",
+        nullable = false,
+        length = 6
+    )
+    private String reportingManagerEmployeeCode;
+
+    @Column(
+        name = "reporting_manager_email",
+        nullable = false,
+        length = 150
+    )
+    private String reportingManagerEmail;
+
+    // Company tenant ID
+    @Column(name = "tenant_id", nullable = false, length = 50)
+    private String tenantId;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     public EmployeeProject() {
     }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
 
     public Long getId() {
         return id;
@@ -47,12 +77,12 @@ public class EmployeeProject {
         this.id = id;
     }
 
-    public String getTenantId() {
-        return tenantId;
+    public String getAssignmentStatus() {
+        return assignmentStatus;
     }
 
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
+    public void setAssignmentStatus(String assignmentStatus) {
+        this.assignmentStatus = assignmentStatus;
     }
 
     public Long getEmployeeId() {
@@ -71,27 +101,52 @@ public class EmployeeProject {
         this.projectId = projectId;
     }
 
-    public LocalDate getStartDate() {
-        return startDate;
+    public LocalDate getProjectStartDate() {
+        return projectStartDate;
     }
 
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
+    public void setProjectStartDate(LocalDate projectStartDate) {
+        this.projectStartDate = projectStartDate;
     }
 
-    public LocalDate getEndDate() {
-        return endDate;
+    public LocalDate getProjectEndDate() {
+        return projectEndDate;
     }
 
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
+    public void setProjectEndDate(LocalDate projectEndDate) {
+        this.projectEndDate = projectEndDate;
     }
 
-    public String getAssignmentStatus() {
-        return assignmentStatus;
+    public String getReportingManagerEmployeeCode() {
+        return reportingManagerEmployeeCode;
     }
 
-    public void setAssignmentStatus(String assignmentStatus) {
-        this.assignmentStatus = assignmentStatus;
+    public void setReportingManagerEmployeeCode(
+            String reportingManagerEmployeeCode) {
+        this.reportingManagerEmployeeCode = reportingManagerEmployeeCode;
+    }
+
+    public String getReportingManagerEmail() {
+        return reportingManagerEmail;
+    }
+
+    public void setReportingManagerEmail(String reportingManagerEmail) {
+        this.reportingManagerEmail = reportingManagerEmail;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }
