@@ -2,9 +2,6 @@
 package com.ems.project.controller;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,93 +9,81 @@ import org.springframework.web.bind.annotation.*;
 
 import com.ems.project.dto.AssignProjectRequest;
 import com.ems.project.dto.EmployeeProjectResponse;
-import com.ems.project.entity.EmployeeProject;
-import com.ems.project.mapper.EmployeeProjectMapper;
 import com.ems.project.service.EmployeeProjectService;
 
+import jakarta.validation.Valid;
+
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/admin/employee-projects")
 public class EmployeeProjectController {
 
-    private final EmployeeProjectService assignmentService;
+    private final EmployeeProjectService employeeProjectService;
 
     public EmployeeProjectController(
-            EmployeeProjectService assignmentService) {
-        this.assignmentService = assignmentService;
+            EmployeeProjectService employeeProjectService) {
+        this.employeeProjectService = employeeProjectService;
     }
 
-    // Assign employee to a project
-    @PostMapping("/employees/projects")
+    // Assign employee to project
+    @PostMapping
     public ResponseEntity<EmployeeProjectResponse> assignEmployee(
-            @Valid @RequestBody AssignProjectRequest request,
-            @RequestParam String tenantId) {
-
-        EmployeeProject assignment =
-                assignmentService.assignEmployeeToProject(
-                        request.getEmployeeId(),
-                        request.getProjectId(),
-                        tenantId);
+            @Valid @RequestBody AssignProjectRequest request) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(EmployeeProjectMapper.toResponse(assignment));
+                .body(employeeProjectService.assignEmployeeToProject(request));
     }
 
-    // Change an employee's project
-    @PutMapping("/employee-projects/{assignmentId}")
-    public ResponseEntity<EmployeeProjectResponse> changeAssignment(
-            @PathVariable Long assignmentId,
-            @RequestParam Long newProjectId,
-            @RequestParam String tenantId) {
-
-        EmployeeProject assignment =
-                assignmentService.changeProjectAssignment(
-                        assignmentId, newProjectId, tenantId);
+    // View all assignments
+    @GetMapping
+    public ResponseEntity<List<EmployeeProjectResponse>> getAllAssignments() {
 
         return ResponseEntity.ok(
-                EmployeeProjectMapper.toResponse(assignment));
+                employeeProjectService.getAllAssignments());
     }
 
-    // Close an assignment
-    @PatchMapping("/employee-projects/{assignmentId}/close")
-    public ResponseEntity<EmployeeProjectResponse> closeAssignment(
-            @PathVariable Long assignmentId,
-            @RequestParam String tenantId) {
-
-        EmployeeProject assignment =
-                assignmentService.closeProjectAssignment(
-                        assignmentId, tenantId);
+    // View assignments by employee
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<List<EmployeeProjectResponse>> getByEmployee(
+            @PathVariable Long employeeId) {
 
         return ResponseEntity.ok(
-                EmployeeProjectMapper.toResponse(assignment));
+                employeeProjectService.getAssignmentsByEmployeeId(employeeId));
     }
 
-    // View current assignments
-    @GetMapping("/employees/{employeeId}/projects/current")
-    public ResponseEntity<List<EmployeeProjectResponse>> getCurrentAssignments(
-            @PathVariable Long employeeId,
-            @RequestParam String tenantId) {
+    // View assignments by project
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<List<EmployeeProjectResponse>> getByProject(
+            @PathVariable Long projectId) {
 
-        List<EmployeeProjectResponse> response =
-                assignmentService.getCurrentAssignments(employeeId, tenantId)
-                        .stream()
-                        .map(EmployeeProjectMapper::toResponse)
-                        .collect(Collectors.toList());
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                employeeProjectService.getAssignmentsByProjectId(projectId));
     }
 
-    // View assignment history
-    @GetMapping("/employees/{employeeId}/projects/history")
-    public ResponseEntity<List<EmployeeProjectResponse>> getAssignmentHistory(
-            @PathVariable Long employeeId,
-            @RequestParam String tenantId) {
+    // View individual assignment
+    @GetMapping("/{id}")
+    public ResponseEntity<EmployeeProjectResponse> getById(
+            @PathVariable Long id) {
 
-        List<EmployeeProjectResponse> response =
-                assignmentService.getAssignmentHistory(employeeId, tenantId)
-                        .stream()
-                        .map(EmployeeProjectMapper::toResponse)
-                        .collect(Collectors.toList());
+        return ResponseEntity.ok(
+                employeeProjectService.getAssignmentById(id));
+    }
 
-        return ResponseEntity.ok(response);
+    // Update assignment
+    @PutMapping("/{id}")
+    public ResponseEntity<EmployeeProjectResponse> updateAssignment(
+            @PathVariable Long id,
+            @Valid @RequestBody AssignProjectRequest request) {
+
+        return ResponseEntity.ok(
+                employeeProjectService.updateAssignment(id, request));
+    }
+
+    // Close assignment
+    @PatchMapping("/{id}/close")
+    public ResponseEntity<Void> closeAssignment(
+            @PathVariable Long id) {
+
+        employeeProjectService.closeAssignment(id);
+        return ResponseEntity.noContent().build();
     }
 }
