@@ -3,18 +3,16 @@ package com.ems.project.service;
 
 import java.util.List;
 
-import com.ems.project.entity.Project;
+import com.ems.project.dto.ProjectRequest;
+import com.ems.project.dto.ProjectResponse;
 
 public interface ProjectService {
 
-    Project createProject(Project project, String tenantId);
+    ProjectResponse createProject(ProjectRequest request);
 
-    List<Project> getAllProjects(String tenantId);
+    List<ProjectResponse> getAllProjects();
 
-    Project getProjectById(Long projectId, String tenantId);
+    ProjectResponse getProjectById(Long id);
 
-    Project updateProject(
-            Long projectId, Project updatedProject, String tenantId);
-
-    void deleteProject(Long projectId, String tenantId);
+    ProjectResponse updateProject(Long id, ProjectRequest request);
 }
