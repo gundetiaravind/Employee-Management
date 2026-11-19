@@ -2,29 +2,25 @@
 package com.ems.project.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import com.ems.project.entity.EmployeeProject;
 
+@Repository
 public interface EmployeeProjectRepository
         extends JpaRepository<EmployeeProject, Long> {
 
-    List<EmployeeProject> findByTenantId(String tenantId);
+    List<EmployeeProject> findAllByTenantId(String tenantId);
 
-    List<EmployeeProject> findByEmployeeIdAndTenantId(
+    Optional<EmployeeProject> findByIdAndTenantId(
+            Long id, String tenantId);
+
+    List<EmployeeProject> findAllByEmployeeIdAndTenantId(
             Long employeeId, String tenantId);
 
-    List<EmployeeProject> findByProjectIdAndTenantId(
+    List<EmployeeProject> findAllByProjectIdAndTenantId(
             Long projectId, String tenantId);
-
-    List<EmployeeProject> findByEmployeeIdAndTenantIdAndAssignmentStatus(
-            Long employeeId, String tenantId, String assignmentStatus);
-
-    boolean existsByEmployeeIdAndProjectIdAndTenantIdAndAssignmentStatus(
-            Long employeeId,
-            Long projectId,
-            String tenantId,
-            String assignmentStatus
-    );
 }
