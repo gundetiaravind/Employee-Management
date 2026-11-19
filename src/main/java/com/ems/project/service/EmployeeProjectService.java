@@ -1,25 +1,28 @@
+
 package com.ems.project.service;
 
 import java.util.List;
 
-import com.ems.project.entity.EmployeeProject;
+import com.ems.project.dto.AssignProjectRequest;
+import com.ems.project.dto.EmployeeProjectResponse;
 
 public interface EmployeeProjectService {
 
-    EmployeeProject assignEmployeeToProject(
-            Long employeeId, Long projectId,
-            String tenantId);
+    EmployeeProjectResponse assignEmployeeToProject(
+            AssignProjectRequest request);
 
-    EmployeeProject changeProjectAssignment(
-            Long assignmentId, Long newProjectId,
-            String tenantId);
+    List<EmployeeProjectResponse> getAllAssignments();
 
-    EmployeeProject closeProjectAssignment(
-            Long assignmentId, String tenantId);
+    List<EmployeeProjectResponse> getAssignmentsByEmployeeId(
+            Long employeeId);
 
-    List<EmployeeProject> getCurrentAssignments(
-            Long employeeId, String tenantId);
+    List<EmployeeProjectResponse> getAssignmentsByProjectId(
+            Long projectId);
 
-    List<EmployeeProject> getAssignmentHistory(
-            Long employeeId, String tenantId);
+    EmployeeProjectResponse getAssignmentById(Long id);
+
+    EmployeeProjectResponse updateAssignment(
+            Long id, AssignProjectRequest request);
+
+    EmployeeProjectResponse closeAssignment(Long id);
 }
