@@ -10,45 +10,60 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
-@Table(name = "projects")
+@Table(
+    name = "projects",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_project_tenant_code",
+            columnNames = {"tenant_id", "project_code"}
+        )
+    }
+)
 public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "tenant_id", nullable = false)
-    private String tenantId;
-
-    @Column(name = "project_code", nullable = false)
+    @NotBlank(message = "Project code is required")
+    @Size(max = 50)
+    @Column(name = "project_code", nullable = false, length = 50)
     private String projectCode;
 
-    @Column(name = "project_name", nullable = false)
+    @NotBlank(message = "Project name is required")
+    @Size(max = 100)
+    @Column(name = "project_name", nullable = false, length = 100)
     private String projectName;
 
-    @Column(name = "client_name", nullable = false)
-    private String clientName;
+    @Column(length = 1000)
+    private String description;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
-    @Column(name = "end_date")
+    @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @Column(name = "reporting_manager_employee_code", nullable = false)
-    private String reportingManagerEmployeeCode;
+    @Column(nullable = false, length = 30)
+    private String status = "PLANNED";
 
-    @Column(name = "reporting_manager_email", nullable = false)
-    private String reportingManagerEmail;
+    // Company tenant ID (e.g. COMPANY001)
+    @Column(name = "tenant_id", nullable = false, length = 50)
+    private String tenantId;
 
-    @Column(name = "project_status")
-    private String projectStatus;
-
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     public Project() {
     }
@@ -56,9 +71,14 @@ public class Project {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
-    // ID
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public Long getId() {
         return id;
     }
@@ -67,16 +87,6 @@ public class Project {
         this.id = id;
     }
 
-    // Tenant ID
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
-
-    // Project Code
     public String getProjectCode() {
         return projectCode;
     }
@@ -85,7 +95,6 @@ public class Project {
         this.projectCode = projectCode;
     }
 
-    // Project Name
     public String getProjectName() {
         return projectName;
     }
@@ -94,16 +103,14 @@ public class Project {
         this.projectName = projectName;
     }
 
-    // Client Name
-    public String getClientName() {
-        return clientName;
+    public String getDescription() {
+        return description;
     }
 
-    public void setClientName(String clientName) {
-        this.clientName = clientName;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    // Project Start Date
     public LocalDate getStartDate() {
         return startDate;
     }
@@ -112,7 +119,6 @@ public class Project {
         this.startDate = startDate;
     }
 
-    // Project End Date
     public LocalDate getEndDate() {
         return endDate;
     }
@@ -121,39 +127,27 @@ public class Project {
         this.endDate = endDate;
     }
 
-    // Reporting Manager Employee Code
-    public String getReportingManagerEmployeeCode() {
-        return reportingManagerEmployeeCode;
+    public String getStatus() {
+        return status;
     }
 
-    public void setReportingManagerEmployeeCode(String reportingManagerEmployeeCode) {
-        this.reportingManagerEmployeeCode = reportingManagerEmployeeCode;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
-    // Reporting Manager Email
-    public String getReportingManagerEmail() {
-        return reportingManagerEmail;
+    public String getTenantId() {
+        return tenantId;
     }
 
-    public void setReportingManagerEmail(String reportingManagerEmail) {
-        this.reportingManagerEmail = reportingManagerEmail;
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
-    // Project Status
-    public String getProjectStatus() {
-        return projectStatus;
-    }
-
-    public void setProjectStatus(String projectStatus) {
-        this.projectStatus = projectStatus;
-    }
-
-    // Created At
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }
