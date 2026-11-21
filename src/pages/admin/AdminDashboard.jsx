@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink, Outlet, Navigate, useNavigate } from "react-router-dom";
 
@@ -11,6 +12,10 @@ import {
   ChartNoAxesCombined,
   UserRound,
   BriefcaseBusiness,
+  FolderKanban,
+  UserPlus,
+  FileText,
+  Landmark,
   LogOut,
   Menu,
   X,
@@ -34,7 +39,27 @@ const navigation = [
     path: "/admin/work-allocation",
     icon: BriefcaseBusiness,
   },
+  {
+    label: "Project Management",
+    path: "/admin/projects",
+    icon: FolderKanban,
+  },
+  {
+    label: "Employee Project Assignments",
+    path: "/admin/employee-projects",
+    icon: UserPlus,
+  },
   { label: "Payroll", path: "/admin/payroll", icon: Wallet },
+  {
+    label: "Finance Management",
+    path: "/admin/finance",
+    icon: Landmark,
+  },
+  {
+    label: "Payslip Management",
+    path: "/admin/payslips",
+    icon: FileText,
+  },
   { label: "Reports", path: "/admin/reports", icon: ChartNoAxesCombined },
   { label: "My Profile", path: "/admin/profile", icon: UserRound },
 ];
@@ -111,7 +136,11 @@ export default function AdminDashboard() {
               aria-label="Toggle color theme"
               title="Toggle theme"
             >
-              {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
+              {theme === "light" ? (
+                <Moon size={19} />
+              ) : (
+                <Sun size={19} />
+              )}
             </button>
 
             <div className="admin-user-info">
