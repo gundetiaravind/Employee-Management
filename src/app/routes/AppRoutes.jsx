@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -38,6 +39,10 @@ import Payroll from "../../pages/admin/Payroll";
 import Reports from "../../pages/admin/Reports";
 import WorkAllocation from "../../pages/admin/WorkAllocation";
 import AdminProfile from "../../pages/admin/AdminProfile";
+import PayslipManagement from "../../pages/admin/PayslipManagement";
+import FinanceManagement from "../../pages/admin/FinanceManagement";
+import ProjectManagement from "../../pages/admin/ProjectManagement";
+import EmployeeProjectManagement from "../../pages/admin/EmployeeProjectManagement";
 
 // Employee pages
 import EmployeeDashboard, {
@@ -78,11 +83,13 @@ function AuthGuard({ allowedRoles, children }) {
         const permittedRoles = allowedRoles.map((role) =>
           String(role)
             .replace(/^ROLE_/, "")
-            .toUpperCase(),
+            .toUpperCase()
         );
 
         setStatus(
-          permittedRoles.includes(userRole) ? "authorized" : "unauthorized",
+          permittedRoles.includes(userRole)
+            ? "authorized"
+            : "unauthorized"
         );
       } catch {
         if (active) {
@@ -107,7 +114,11 @@ function AuthGuard({ allowedRoles, children }) {
 
     return (
       <Navigate
-        to={auth?.accessToken ? getDashboardPath(auth.role) : "/login"}
+        to={
+          auth?.accessToken
+            ? getDashboardPath(auth.role)
+            : "/login"
+        }
         replace
       />
     );
@@ -131,15 +142,26 @@ export default function AppRoutes() {
 
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      <Route path="/register/company" element={<CompanyRegistration />} />
+      <Route
+        path="/register/company"
+        element={<CompanyRegistration />}
+      />
 
-      {/* Existing employee registration route */}
-      <Route path="/register/employee" element={<EmployeeRegistration />} />
+      <Route
+        path="/register/employee"
+        element={<EmployeeRegistration />}
+      />
 
-      {/* Invitation registration route for Admin and Employee */}
-      <Route path="/employee/register" element={<EmployeeRegistration />} />
+      {/* Invitation registration route */}
+      <Route
+        path="/employee/register"
+        element={<EmployeeRegistration />}
+      />
 
-      <Route path="/verify-email" element={<EmailVerification />} />
+      <Route
+        path="/verify-email"
+        element={<EmailVerification />}
+      />
 
       {/* ==================== PLATFORM MANAGER ==================== */}
 
@@ -198,6 +220,17 @@ export default function AppRoutes() {
         <Route path="leaves" element={<LeaveManagement />} />
 
         <Route path="payroll" element={<Payroll />} />
+
+        <Route path="payslips" element={<PayslipManagement />} />
+
+        <Route path="finance" element={<FinanceManagement />} />
+
+        <Route path="projects" element={<ProjectManagement />} />
+
+        <Route
+          path="employee-projects"
+          element={<EmployeeProjectManagement />}
+        />
 
         <Route path="reports" element={<Reports />} />
 
