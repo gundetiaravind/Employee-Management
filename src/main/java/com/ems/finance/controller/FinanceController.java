@@ -3,6 +3,7 @@ package com.ems.finance.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,6 +20,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/employees")
+@PreAuthorize("hasRole('ADMIN')")
 public class FinanceController {
 
     private final FinanceService financeService;
@@ -27,14 +29,12 @@ public class FinanceController {
     public FinanceController(
             FinanceService financeService,
             UserRepository userRepository) {
-
         this.financeService = financeService;
         this.userRepository = userRepository;
     }
 
     // Get tenant ID from the authenticated user's company
     private Long getTenantId(Authentication authentication) {
-
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED,
