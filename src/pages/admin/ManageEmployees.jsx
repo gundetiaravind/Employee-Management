@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import {
   Search,
@@ -10,7 +11,6 @@ import {
   RefreshCw,
   Mail,
   Ban,
-  Clock,
 } from "lucide-react";
 
 import axiosInstance from "../../utils/axiosInstance";
@@ -37,20 +37,6 @@ const emptyInvitationForm = {
   joiningDate: "",
 };
 
-const getCompanyId = () => {
-  try {
-    const user = JSON.parse(
-      sessionStorage.getItem("orgconnect-auth") || "null",
-    );
-
-    return (
-      user?.companyId ?? user?.company?.id ?? user?.company?.companyId ?? null
-    );
-  } catch {
-    return null;
-  }
-};
-
 const getErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.response?.data?.error ||
@@ -62,7 +48,7 @@ const getInvitationId = (invitation) =>
 
 const getInvitationStatus = (invitation) =>
   String(
-    invitation?.invitationStatus ?? invitation?.status ?? "UNKNOWN",
+    invitation?.invitationStatus ?? invitation?.status ?? "UNKNOWN"
   ).toUpperCase();
 
 const normalizeStatus = (status) => {
@@ -102,7 +88,9 @@ export default function ManageEmployees() {
   const [editingEmployee, setEditingEmployee] = useState(null);
 
   const [form, setForm] = useState(emptyForm);
-  const [invitationForm, setInvitationForm] = useState(emptyInvitationForm);
+  const [invitationForm, setInvitationForm] = useState(
+    emptyInvitationForm
+  );
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -111,30 +99,22 @@ export default function ManageEmployees() {
   const [revokingId, setRevokingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  const getEmployeeApiConfig = (id) => {
-    const companyId = getCompanyId();
+  // Admin employee API endpoints
+  const getEmployeeApiConfig = (id) => ({
+    url:
+      id === undefined
+        ? "/api/company/employees"
+        : `/api/company/employees/${id}`,
+  });
 
-    if (!companyId) {
-      throw new Error("Company ID is missing. Please log in again.");
-    }
-
-    return {
-      url:
-        id === undefined
-          ? "/api/company-owner/employees"
-          : `/api/company/employees/${id}`,
-      params: { companyId },
-    };
-  };
-
-  // Load employees from the backend.
+  // Fetch employees
   const fetchEmployees = async () => {
     try {
       setLoading(true);
       setApiError("");
 
-      const { url, params } = getEmployeeApiConfig();
-      const response = await axiosInstance.get(url, { params });
+      const { url } = getEmployeeApiConfig();
+      const response = await axiosInstance.get(url);
 
       const data = Array.isArray(response.data)
         ? response.data
@@ -150,7 +130,7 @@ export default function ManageEmployees() {
           designation: employee.designation ?? "",
           joiningDate: employee.joined ?? employee.joiningDate ?? "",
           status: normalizeStatus(employee.status),
-        })),
+        }))
       );
     } catch (error) {
       setApiError(getErrorMessage(error));
@@ -159,7 +139,7 @@ export default function ManageEmployees() {
     }
   };
 
-  // Load invitations. The backend restricts Admins to Employee invitations.
+  // Fetch employee invitations
   const fetchInvitations = async () => {
     try {
       const response = await invitationService.getInvitations();
@@ -171,8 +151,9 @@ export default function ManageEmployees() {
       setInvitations(
         data.filter(
           (invitation) =>
-            String(invitation.invitedRole || "").toUpperCase() === "EMPLOYEE",
-        ),
+            String(invitation.invitedRole || "").toUpperCase() ===
+            "EMPLOYEE"
+        )
       );
     } catch (error) {
       setApiError(getErrorMessage(error));
@@ -190,10 +171,10 @@ export default function ManageEmployees() {
   const departments = useMemo(
     () => [
       ...new Set(
-        employees.map((employee) => employee.department).filter(Boolean),
+        employees.map((employee) => employee.department).filter(Boolean)
       ),
     ],
-    [employees],
+    [employees]
   );
 
   const filteredEmployees = useMemo(() => {
@@ -205,31 +186,34 @@ export default function ManageEmployees() {
         employee.employeeId,
         employee.email,
       ].some((value) =>
-        String(value || "")
-          .toLowerCase()
-          .includes(query),
+        String(value || "").toLowerCase().includes(query)
       );
 
       const matchesDepartment =
-        departmentFilter === "All" || employee.department === departmentFilter;
+        departmentFilter === "All" ||
+        employee.department === departmentFilter;
 
       const matchesStatus =
         statusFilter === "All" || employee.status === statusFilter;
 
-      return matchesSearch && matchesDepartment && matchesStatus;
+      return (
+        matchesSearch &&
+        matchesDepartment &&
+        matchesStatus
+      );
     });
   }, [employees, search, departmentFilter, statusFilter]);
 
   const activeCount = employees.filter(
-    (employee) => employee.status === "Active",
+    (employee) => employee.status === "Active"
   ).length;
 
   const inactiveCount = employees.filter(
-    (employee) => employee.status === "Inactive",
+    (employee) => employee.status === "Inactive"
   ).length;
 
   const pendingCount = invitations.filter(
-    (invitation) => getInvitationStatus(invitation) === "PENDING",
+    (invitation) => getInvitationStatus(invitation) === "PENDING"
   ).length;
 
   const openInviteModal = () => {
@@ -285,7 +269,7 @@ export default function ManageEmployees() {
     }));
   };
 
-  // Admin can invite Employees only.
+  // Send employee invitation
   const sendInvitation = async (event) => {
     event.preventDefault();
     setFormError("");
@@ -296,7 +280,9 @@ export default function ManageEmployees() {
     const phone = invitationForm.phone.trim();
 
     if (!code || !name || !email) {
-      setFormError("Employment code, employee name and email are required.");
+      setFormError(
+        "Employment code, employee name and email are required."
+      );
       return;
     }
 
@@ -317,7 +303,8 @@ export default function ManageEmployees() {
 
     const duplicateCode = employees.some(
       (employee) =>
-        String(employee.employeeId || "").toLowerCase() === code.toLowerCase(),
+        String(employee.employeeId || "").toLowerCase() ===
+        code.toLowerCase()
     );
 
     if (duplicateCode) {
@@ -326,7 +313,8 @@ export default function ManageEmployees() {
     }
 
     const duplicateEmail = employees.some(
-      (employee) => String(employee.email || "").toLowerCase() === email,
+      (employee) =>
+        String(employee.email || "").toLowerCase() === email
     );
 
     if (duplicateEmail) {
@@ -337,11 +325,13 @@ export default function ManageEmployees() {
     const duplicateInvitation = invitations.some(
       (invitation) =>
         String(invitation.email || "").toLowerCase() === email &&
-        getInvitationStatus(invitation) === "PENDING",
+        getInvitationStatus(invitation) === "PENDING"
     );
 
     if (duplicateInvitation) {
-      setFormError("A pending invitation already exists for this email.");
+      setFormError(
+        "A pending invitation already exists for this email."
+      );
       return;
     }
 
@@ -370,7 +360,7 @@ export default function ManageEmployees() {
     }
   };
 
-  // Update an existing employee.
+  // Update employee
   const saveEmployee = async (event) => {
     event.preventDefault();
     setFormError("");
@@ -392,7 +382,8 @@ export default function ManageEmployees() {
     const duplicateCode = employees.some(
       (employee) =>
         String(employee.employeeId || "").toLowerCase() ===
-          code.toLowerCase() && employee.id !== editingEmployee.id,
+          code.toLowerCase() &&
+        employee.id !== editingEmployee.id
     );
 
     if (duplicateCode) {
@@ -402,8 +393,9 @@ export default function ManageEmployees() {
 
     const duplicateEmail = employees.some(
       (employee) =>
-        String(employee.email || "").toLowerCase() === email.toLowerCase() &&
-        employee.id !== editingEmployee.id,
+        String(employee.email || "").toLowerCase() ===
+          email.toLowerCase() &&
+        employee.id !== editingEmployee.id
     );
 
     if (duplicateEmail) {
@@ -414,21 +406,17 @@ export default function ManageEmployees() {
     try {
       setSaving(true);
 
-      const { url, params } = getEmployeeApiConfig(editingEmployee.id);
+      const { url } = getEmployeeApiConfig(editingEmployee.id);
 
-      await axiosInstance.put(
-        url,
-        {
-          code,
-          name,
-          email,
-          department: form.department || null,
-          designation: form.designation || null,
-          joined: form.joiningDate || null,
-          status: form.status,
-        },
-        { params },
-      );
+      await axiosInstance.put(url, {
+        code,
+        name,
+        email,
+        department: form.department || null,
+        designation: form.designation || null,
+        joined: form.joiningDate || null,
+        status: form.status,
+      });
 
       setShowModal(false);
       setEditingEmployee(null);
@@ -442,10 +430,10 @@ export default function ManageEmployees() {
     }
   };
 
-  // Deactivate an employee using the existing backend endpoint.
+  // Deactivate employee
   const deactivateEmployee = async (employee) => {
     const confirmed = window.confirm(
-      `Are you sure you want to deactivate ${employee.name}?`,
+      `Are you sure you want to deactivate ${employee.name}?`
     );
 
     if (!confirmed) return;
@@ -454,14 +442,16 @@ export default function ManageEmployees() {
       setDeletingId(employee.id);
       setApiError("");
 
-      const { url, params } = getEmployeeApiConfig(employee.id);
+      const { url } = getEmployeeApiConfig(employee.id);
 
-      await axiosInstance.delete(url, { params });
+      await axiosInstance.delete(url);
 
       setEmployees((current) =>
         current.map((item) =>
-          item.id === employee.id ? { ...item, status: "Inactive" } : item,
-        ),
+          item.id === employee.id
+            ? { ...item, status: "Inactive" }
+            : item
+        )
       );
     } catch (error) {
       setApiError(getErrorMessage(error));
@@ -470,7 +460,33 @@ export default function ManageEmployees() {
     }
   };
 
-  // Revoke a pending invitation.
+  // Activate employee
+  const activateEmployee = async (employee) => {
+    try {
+      setDeletingId(employee.id);
+      setApiError("");
+
+      const { url } = getEmployeeApiConfig(employee.id);
+
+      await axiosInstance.put(url, {
+        code: employee.employeeId,
+        name: employee.name,
+        email: employee.email,
+        department: employee.department || null,
+        designation: employee.designation || null,
+        joined: employee.joiningDate || null,
+        status: "Active",
+      });
+
+      await fetchEmployees();
+    } catch (error) {
+      setApiError(getErrorMessage(error));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Revoke employee invitation
   const revokeInvitation = async (invitation) => {
     const invitationId = getInvitationId(invitation);
 
@@ -480,7 +496,7 @@ export default function ManageEmployees() {
     }
 
     const confirmed = window.confirm(
-      `Revoke the invitation sent to ${invitation.email}?`,
+      `Revoke the invitation sent to ${invitation.email}?`
     );
 
     if (!confirmed) return;
@@ -751,7 +767,8 @@ export default function ManageEmployees() {
           font-size: 12px;
         }
 
-        .me-status {
+        .me-status,
+        .me-invitation-status {
           display: inline-block;
           padding: 5px 10px;
           border-radius: 20px;
@@ -779,14 +796,6 @@ export default function ManageEmployees() {
         .me-invitation-status.revoked {
           background: var(--bg, #f6f7fb);
           color: var(--muted, #7a8192);
-        }
-
-        .me-invitation-status {
-          display: inline-block;
-          padding: 5px 10px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 700;
         }
 
         .me-actions {
@@ -1094,18 +1103,27 @@ export default function ManageEmployees() {
                         <Pencil size={15} />
                       </button>
 
-                      <button
-                        type="button"
-                        className="me-icon-btn me-danger"
-                        title="Deactivate employee"
-                        onClick={() => deactivateEmployee(employee)}
-                        disabled={
-                          employee.status !== "Active" ||
-                          deletingId === employee.id
-                        }
-                      >
-                        <UserX size={16} />
-                      </button>
+                      {employee.status === "Active" ? (
+                        <button
+                          type="button"
+                          className="me-icon-btn me-danger"
+                          title="Deactivate employee"
+                          onClick={() => deactivateEmployee(employee)}
+                          disabled={deletingId === employee.id}
+                        >
+                          <UserX size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="me-icon-btn"
+                          title="Activate employee"
+                          onClick={() => activateEmployee(employee)}
+                          disabled={deletingId === employee.id}
+                        >
+                          <UserCheck size={16} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1122,7 +1140,6 @@ export default function ManageEmployees() {
         </table>
       </div>
 
-      {/* Employee invitations */}
       <div className="me-section">
         <div className="me-table-wrap">
           <div className="me-section-header">
@@ -1130,6 +1147,7 @@ export default function ManageEmployees() {
               <h3>Employee Invitations</h3>
               <p>Track invitations sent to employees.</p>
             </div>
+
             <span className="me-count">
               {invitations.length} invitation
               {invitations.length === 1 ? "" : "s"}
@@ -1170,7 +1188,7 @@ export default function ManageEmployees() {
                       <td>
                         <span
                           className={`me-invitation-status ${invitationStatusClass(
-                            status,
+                            status
                           )}`}
                         >
                           {status}
@@ -1344,11 +1362,13 @@ export default function ManageEmployees() {
                   </div>
 
                   <div className="me-form-hint">
-                    The employee will receive an email invitation with a link to
-                    set their password and activate their account.
+                    The employee will receive an email invitation with a link
+                    to set their password and activate their account.
                   </div>
 
-                  {formError && <p className="me-form-error">{formError}</p>}
+                  {formError && (
+                    <p className="me-form-error">{formError}</p>
+                  )}
                 </div>
 
                 <div className="me-form-actions">
@@ -1452,7 +1472,9 @@ export default function ManageEmployees() {
                     </select>
                   </div>
 
-                  {formError && <p className="me-form-error">{formError}</p>}
+                  {formError && (
+                    <p className="me-form-error">{formError}</p>
+                  )}
                 </div>
 
                 <div className="me-form-actions">
