@@ -9,7 +9,6 @@ import com.ems.company.entity.EmployeeStatus;
 import com.ems.company.mapper.CompanyMapper;
 import com.ems.company.repository.CompanyRepository;
 import com.ems.company.repository.CompanyUserRepository;
-import com.ems.company.service.CompanyService;
 import com.ems.employee.entity.Employee;
 import com.ems.employee.repository.EmployeeRepository;
 import com.ems.user.entity.User;
@@ -129,20 +128,20 @@ public class CompanyServiceImpl implements CompanyService {
     response.setAccountType("Owner");
 
     response.setRecentAdmins(
-        companyUserRepository
-            .findByCompany_IdAndRole(
-                authorizedCompanyId, Role.ADMIN)
-            .stream()
-            .sorted(
-                Comparator.comparing(
-                    User::getCreatedAt,
-                    Comparator.nullsLast(
-                        Comparator.reverseOrder())))
-            .limit(5)
-            .map(CompanyMapper::toAdminResponse)
-            .collect(Collectors.toList()));
+    companyUserRepository
+        .findByCompany_IdAndRole(
+            authorizedCompanyId, Role.ADMIN)
+        .stream()
+        .sorted(
+            Comparator.comparing(
+                (User user) -> user.getCreatedAt(),
+                Comparator.nullsLast(
+                    Comparator.reverseOrder())))
+        .limit(5)
+        .map(CompanyMapper::toAdminResponse)
+        .collect(Collectors.toList()));
 
-    return response;
+return response;
   }
 
   // =========================================================
@@ -169,16 +168,16 @@ public class CompanyServiceImpl implements CompanyService {
     Long authorizedCompanyId = resolveAuthorizedCompanyId(companyId, Role.COMPANY_OWNER);
 
     return companyUserRepository
-        .findByCompany_IdAndRole(
-            authorizedCompanyId, Role.ADMIN)
-        .stream()
-        .sorted(
-            Comparator.comparing(
-                User::getCreatedAt,
-                Comparator.nullsLast(
-                    Comparator.reverseOrder())))
-        .map(CompanyMapper::toAdminResponse)
-        .collect(Collectors.toList());
+    .findByCompany_IdAndRole(
+        authorizedCompanyId, Role.ADMIN)
+    .stream()
+    .sorted(
+        Comparator.comparing(
+            (User user) -> user.getCreatedAt(),
+            Comparator.nullsLast(
+                Comparator.reverseOrder())))
+    .map(CompanyMapper::toAdminResponse)
+    .collect(Collectors.toList());
   }
 
   @Override
