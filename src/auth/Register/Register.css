@@ -1,0 +1,161 @@
+.register-selection-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--bg);
+}
+
+.register-selection-card {
+  width: 100%;
+  max-width: 650px;
+  padding: 36px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.register-back-button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 30px;
+}
+
+.register-back-button:hover {
+  color: var(--primary);
+}
+
+.register-heading {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.register-brand-icon,
+.register-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  background: var(--soft-primary);
+  border-radius: 14px;
+}
+
+.register-brand-icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 18px;
+}
+
+.register-heading h1 {
+  color: var(--text);
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.register-heading p {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.register-options {
+  display: grid;
+  gap: 16px;
+}
+
+.register-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.register-option:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.register-option-icon {
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+}
+
+.register-option-content {
+  flex: 1;
+}
+
+.register-option-content h2 {
+  color: var(--text);
+  font-size: 17px;
+  margin-bottom: 7px;
+}
+
+.register-option-content p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.register-option-content span {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.register-option-arrow {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.register-login-link {
+  text-align: center;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.register-login-link button {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 550px) {
+  .register-selection-card {
+    padding: 24px 18px;
+  }
+
+  .register-option {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .register-option-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .register-option-content h2 {
+    font-size: 15px;
+  }
+
+  .register-option-content p {
+    font-size: 12px;
+  }
+}
