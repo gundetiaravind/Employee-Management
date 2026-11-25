@@ -2,6 +2,8 @@
 package com.ems.leave.service;
 
 import java.util.List;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -13,8 +15,10 @@ import org.springframework.web.server.ResponseStatusException;
 import com.ems.company.entity.Company;
 import com.ems.company.repository.CompanyUserRepository;
 import com.ems.common.enums.UserStatus;
+import com.ems.common.enums.Role;
 import com.ems.employee.entity.Employee;
 import com.ems.employee.repository.EmployeeRepository;
+import com.ems.leave.dto.LeaveApplicationRequest;
 import com.ems.leave.dto.LeaveDecisionRequest;
 import com.ems.leave.dto.LeaveResponse;
 import com.ems.leave.entity.LeaveRequest;
@@ -41,6 +45,83 @@ public class LeaveServiceImpl implements LeaveService {
         this.employeeRepository = employeeRepository;
         this.companyUserRepository = companyUserRepository;
         this.leaveMapper = leaveMapper;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LeaveResponse> getMyLeaves(String email) {
+
+        Employee employee = getAuthenticatedEmployee(email);
+
+        return leaveRepository
+                .findAllByCompanyIdAndEmployeeIdOrderByAppliedOnDesc(
+                        employee.getCompanyId(), employee.getId())
+                .stream()
+                .map(leave -> leaveMapper.toResponse(leave, employee))
+                .toList();
+    }
+
+    @Override
+    public LeaveResponse applyForLeave(
+            String email, LeaveApplicationRequest request) {
+
+        Employee employee = getAuthenticatedEmployee(email);
+        LocalDate today = LocalDate.now();
+
+        if (request.getStartDate().isBefore(today)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Leave start date cannot be in the past.");
+        }
+
+        if (request.getEndDate().isBefore(request.getStartDate())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Leave end date cannot be before the start date.");
+        }
+
+        long days = ChronoUnit.DAYS.between(
+                request.getStartDate(), request.getEndDate()) + 1;
+
+        if (days > Integer.MAX_VALUE) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "The requested leave period is too long.");
+        }
+
+        LeaveRequest leave = new LeaveRequest();
+        leave.setCompanyId(employee.getCompanyId());
+        leave.setEmployeeId(employee.getId());
+        leave.setLeaveType(request.getLeaveType().trim());
+        leave.setStartDate(request.getStartDate());
+        leave.setEndDate(request.getEndDate());
+        leave.setDays((int) days);
+        leave.setReason(request.getReason().trim());
+        leave.setAppliedOn(today);
+        leave.setStatus("PENDING");
+
+        return leaveMapper.toResponse(
+                leaveRepository.save(leave), employee);
+    }
+
+    @Override
+    public void cancelMyLeave(String email, Long id) {
+
+        Employee employee = getAuthenticatedEmployee(email);
+        LeaveRequest leave = leaveRepository
+                .findByIdAndEmployeeIdAndCompanyId(
+                        id, employee.getId(), employee.getCompanyId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Leave request not found."));
+
+        if (!"PENDING".equalsIgnoreCase(leave.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Only pending leave requests can be cancelled.");
+        }
+
+        leaveRepository.delete(leave);
     }
 
     // GET ALL LEAVE REQUESTS
@@ -157,6 +238,33 @@ public class LeaveServiceImpl implements LeaveService {
         String remarks = request.getAdminRemarks().trim();
 
         return remarks.isEmpty() ? null : remarks;
+    }
+
+    private Employee getAuthenticatedEmployee(String email) {
+
+        User user = companyUserRepository
+                .findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Authenticated user was not found."));
+
+        if (user.getAccountStatus() != UserStatus.ACTIVE) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Your account is not active.");
+        }
+
+        if (user.getRole() != Role.EMPLOYEE) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only employees can manage their leave requests.");
+        }
+
+        return employeeRepository
+                .findByUser_Id(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Employee profile not found."));
     }
 
     // FIND LEAVE REQUEST WITHIN COMPANY

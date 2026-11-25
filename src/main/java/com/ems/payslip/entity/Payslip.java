@@ -6,6 +6,11 @@ import com.ems.company.entity.Company;
 import com.ems.user.entity.User;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,6 +23,8 @@ import java.time.LocalDateTime;
         )
     }
 )
+@Getter
+@Setter
 public class Payslip {
 
     @Id
@@ -32,13 +39,55 @@ public class Payslip {
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
+    // Payroll period
     @Column(name = "payslip_month", nullable = false)
     private Integer payslipMonth;
 
     @Column(name = "payslip_year", nullable = false)
     private Integer payslipYear;
 
-    @Column(name = "file_storage_reference", nullable = false, length = 500)
+    @Column
+    private LocalDate payDate;
+
+    // Earnings
+    @Column(precision = 12, scale = 2)
+    private BigDecimal basicSalary;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal hra;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal allowances;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal bonus;
+
+    // Deductions
+    @Column(precision = 12, scale = 2)
+    private BigDecimal providentFund;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal tax;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal otherDeductions;
+
+    // Calculated amounts
+    @Column(precision = 12, scale = 2)
+    private BigDecimal grossSalary;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal totalDeductions;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal netSalary;
+
+    // Payroll status
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PayslipStatus status = PayslipStatus.PAID;
+
+    @Column(name = "file_storage_reference", nullable = true, length = 500)
     private String fileStorageReference;
 
     @Column(name = "upload_date", nullable = false)
@@ -51,6 +100,9 @@ public class Payslip {
     @PrePersist
     protected void onCreate() {
         uploadDate = LocalDateTime.now();
+        if (status == null) {
+            status = PayslipStatus.PAID;
+        }
     }
 
     public Payslip() {

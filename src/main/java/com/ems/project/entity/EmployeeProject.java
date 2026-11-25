@@ -17,6 +17,9 @@ public class EmployeeProject {
     @Column(name = "assignment_status", nullable = false)
     private String assignmentStatus = "ACTIVE";
 
+    @Column(name = "work_status", length = 20)
+    private String workStatus = "Pending";
+
     @Column(name = "employee_id", nullable = false)
     private Long employeeId;
 
@@ -83,6 +86,14 @@ public class EmployeeProject {
 
     public void setAssignmentStatus(String assignmentStatus) {
         this.assignmentStatus = assignmentStatus;
+    }
+
+    public String getWorkStatus() {
+        return workStatus;
+    }
+
+    public void setWorkStatus(String workStatus) {
+        this.workStatus = workStatus;
     }
 
     public Long getEmployeeId() {

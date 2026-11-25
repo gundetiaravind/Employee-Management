@@ -206,6 +206,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/employees/**")
                         .hasRole("EMPLOYEE")
 
+                        .requestMatchers("/api/attendance/**")
+                        .hasRole("EMPLOYEE")
+
                         // All remaining APIs require authentication
                         .anyRequest()
                         .authenticated())
