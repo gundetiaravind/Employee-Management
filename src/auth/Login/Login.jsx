@@ -9,7 +9,6 @@ import {
   ArrowRight,
   ArrowLeft,
 } from "lucide-react";
-<<<<<<< HEAD
 
 import {
   login as loginUser,
@@ -22,32 +21,10 @@ import "./Login.css";
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
-=======
-import "./Login.css";
-
-const API_URL = "http://localhost:8080/api/auth/login";
-export const AUTH_KEY = "orgconnect-auth";
-
-const ROLE_ROUTES = {
-  PLATFORM_MANAGER: "/platform-manager/dashboard",
-  SUPER_ADMIN: "/platform-manager/dashboard",
-  COMPANY_OWNER: "/owner/dashboard",
-  OWNER: "/owner/dashboard",
-  ADMIN: "/admin/dashboard",
-  EMPLOYEE: "/employee/dashboard",
-};
-
-export default function Login() {
-  const [showPassword, setShowPassword] = useState(false);
->>>>>>> origin/master
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/master
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -58,10 +35,6 @@ export default function Login() {
       ...previous,
       [e.target.name]: e.target.value,
     }));
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/master
     setError("");
   };
 
