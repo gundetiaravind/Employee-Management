@@ -3,9 +3,11 @@ package com.ems.company.controller;
 
 import com.ems.company.dto.CompanyOwnerDashboardResponse;
 import com.ems.company.dto.CompanyOwnerProfileResponse;
+import com.ems.company.dto.CompanyOwnerProfileUpdateRequest;
 import com.ems.company.dto.CompanySettingsResponse;
 import com.ems.company.dto.CompanyUpdateSettingsRequest;
 import com.ems.company.service.CompanyService;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 
@@ -14,6 +16,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+//import org.springframework.web.multipart.MultipartFile;
+
 
 @RestController
 @RequestMapping({
@@ -76,4 +84,42 @@ public class CompanyController {
     return ResponseEntity.ok(
         companyService.getOwnerProfile(null));
   }
+  // ---------- Update Name & Phone ----------
+  
+  // ==================== COMPANY OWNER PROFILE ====================
+
+  // Fetch owner profile
+  // @GetMapping("/profile")
+  // public ResponseEntity<CompanyOwnerProfileResponse> profile() {
+
+  //     return ResponseEntity.ok(
+  //         companyService.getOwnerProfile(null)
+  //     );
+  // }
+
+  // Update personal information ONLY
+  @PutMapping("/profile")
+  public ResponseEntity<CompanyOwnerProfileResponse> updateOwnerProfile(
+          @RequestParam Long companyId,
+          @Valid @RequestBody CompanyOwnerProfileUpdateRequest request) {
+
+      return ResponseEntity.ok(
+          companyService.updateOwnerProfile(companyId, request)
+      );
+  }
+
+  // Upload profile image ONLY
+  @PostMapping(
+      value = "/profile/image",
+      consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+  )
+  public ResponseEntity<CompanyOwnerProfileResponse> uploadOwnerProfileImage(
+          @RequestParam Long companyId,
+          @RequestParam("file") MultipartFile file) {
+
+      return ResponseEntity.ok(
+          companyService.uploadOwnerProfileImage(companyId, file)
+      );
+  }
+
 }

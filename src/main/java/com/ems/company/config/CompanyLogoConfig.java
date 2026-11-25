@@ -24,4 +24,17 @@ public class CompanyLogoConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/static/uploads/uploads/company-logos/**")
                 .addResourceLocations(directory);
     }
+
+
+ 
+
+    @Configuration
+    public class WebConfig implements WebMvcConfigurer {
+
+        @Override
+        public void addResourceHandlers(ResourceHandlerRegistry registry) {
+            registry.addResourceHandler("/uploads/**")
+                    .addResourceLocations("file:uploads/");
+        }
+    }
 }

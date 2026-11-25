@@ -36,6 +36,12 @@ public class User {
     @Column(name = "mobile_number", length = 20)
     private String mobileNumber;
 
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
+
+    @Column(name = "department", length = 100)
+    private String department;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 30)
     private Role role;

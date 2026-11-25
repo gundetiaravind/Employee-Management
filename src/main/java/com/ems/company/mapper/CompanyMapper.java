@@ -35,6 +35,7 @@ public final class CompanyMapper {
     r.setName(user.getFullName());
     r.setEmail(user.getEmail());
     r.setPhone(user.getMobileNumber());
+    r.setDepartment(user.getDepartment());
     r.setStatus(mapUserStatus(user.getAccountStatus()));
     r.setEmailVerified(user.isEmailVerified());
 
@@ -110,36 +111,84 @@ public final class CompanyMapper {
     return r;
   }
 
-  public static CompanyOwnerProfileResponse toOwnerProfile(User user) {
+  // public static CompanyOwnerProfileResponse toOwnerProfile(User user) {
+
+  //   if (user == null) {
+  //     return null;
+  //   }
+
+  //   CompanyOwnerProfileResponse r = new CompanyOwnerProfileResponse();
+
+  //   r.setId(user.getId());
+  //   r.setCompanyId(
+  //       user.getCompany() != null
+  //           ? user.getCompany().getId()
+  //           : null);
+  //   r.setName(user.getFullName());
+  //   r.setEmail(user.getEmail());
+  //   r.setPhone(user.getMobileNumber());
+  //   r.setRole(user.getRole() != null
+  //       ? user.getRole().name()
+  //       : null);
+  //   r.setAccountStatus(user.getAccountStatus() != null
+  //       ? user.getAccountStatus().name()
+  //       : null);
+  //   r.setEmailVerified(user.isEmailVerified());
+
+  //   r.setCreatedAt(user.getCreatedAt() != null
+  //       ? user.getCreatedAt().format(DATE_TIME)
+  //       : null);
+
+  //   return r;
+  // }
+
+
+public static CompanyOwnerProfileResponse toOwnerProfile(User user) {
 
     if (user == null) {
-      return null;
+        return null;
     }
 
     CompanyOwnerProfileResponse r = new CompanyOwnerProfileResponse();
 
     r.setId(user.getId());
+
     r.setCompanyId(
         user.getCompany() != null
             ? user.getCompany().getId()
-            : null);
+            : null
+    );
+
     r.setName(user.getFullName());
     r.setEmail(user.getEmail());
     r.setPhone(user.getMobileNumber());
-    r.setRole(user.getRole() != null
-        ? user.getRole().name()
-        : null);
-    r.setAccountStatus(user.getAccountStatus() != null
-        ? user.getAccountStatus().name()
-        : null);
+
+    r.setRole(
+        user.getRole() != null
+            ? user.getRole().name()
+            : null
+    );
+
+    r.setAccountStatus(
+        user.getAccountStatus() != null
+            ? user.getAccountStatus().name()
+            : null
+    );
+
     r.setEmailVerified(user.isEmailVerified());
 
-    r.setCreatedAt(user.getCreatedAt() != null
-        ? user.getCreatedAt().format(DATE_TIME)
-        : null);
+    // Profile image URL
+    r.setProfileImageUrl(user.getProfileImageUrl());
+
+    r.setCreatedAt(
+        user.getCreatedAt() != null
+            ? user.getCreatedAt().format(DATE_TIME)
+            : null
+    );
 
     return r;
-  }
+}
+
 
   public static String mapUserStatus(UserStatus status) {
 
