@@ -172,7 +172,6 @@ export default function Departments() {
           width: 100%;
           color: var(--text, #202536);
         }
-
         .dept-heading {
           display: flex;
           justify-content: space-between;
@@ -181,12 +180,10 @@ export default function Departments() {
           gap: 15px;
           margin-bottom: 24px;
         }
-
         .dept-heading h2 {
           margin: 0 0 6px;
           font-size: 25px;
         }
-
         .dept-heading p {
           margin: 0;
           color: var(--muted, #7a8192);
@@ -213,19 +210,16 @@ export default function Departments() {
           gap: 16px;
           margin-bottom: 22px;
         }
-
         .dept-stat {
           padding: 20px;
           border: 1px solid var(--border, #e7e9f0);
           border-radius: 12px;
           background: var(--card, white);
         }
-
         .dept-stat-label {
           color: var(--muted, #7a8192);
           font-size: 13px;
         }
-
         .dept-stat-value {
           margin-top: 8px;
           font-size: 26px;
@@ -293,7 +287,6 @@ export default function Departments() {
           text-align: left;
           font-size: 13px;
         }
-
         .dept-table th {
           background: var(--bg, #f6f7fb);
           color: var(--muted, #7a8192);
@@ -310,7 +303,6 @@ export default function Departments() {
           gap: 10px;
           font-weight: 600;
         }
-
         .dept-icon {
           display: flex;
           align-items: center;

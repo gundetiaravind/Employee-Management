@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -38,6 +42,13 @@ import Payroll from "../../pages/admin/Payroll";
 import Reports from "../../pages/admin/Reports";
 import WorkAllocation from "../../pages/admin/WorkAllocation";
 import AdminProfile from "../../pages/admin/AdminProfile";
+<<<<<<< HEAD
+=======
+import PayslipManagement from "../../pages/admin/PayslipManagement";
+import FinanceManagement from "../../pages/admin/FinanceManagement";
+import ProjectManagement from "../../pages/admin/ProjectManagement";
+import EmployeeProjectManagement from "../../pages/admin/EmployeeProjectManagement";
+>>>>>>> origin/master
 
 // Employee pages
 import EmployeeDashboard, {
@@ -78,11 +89,21 @@ function AuthGuard({ allowedRoles, children }) {
         const permittedRoles = allowedRoles.map((role) =>
           String(role)
             .replace(/^ROLE_/, "")
+<<<<<<< HEAD
             .toUpperCase(),
         );
 
         setStatus(
           permittedRoles.includes(userRole) ? "authorized" : "unauthorized",
+=======
+            .toUpperCase()
+        );
+
+        setStatus(
+          permittedRoles.includes(userRole)
+            ? "authorized"
+            : "unauthorized"
+>>>>>>> origin/master
         );
       } catch {
         if (active) {
@@ -107,7 +128,15 @@ function AuthGuard({ allowedRoles, children }) {
 
     return (
       <Navigate
+<<<<<<< HEAD
         to={auth?.accessToken ? getDashboardPath(auth.role) : "/login"}
+=======
+        to={
+          auth?.accessToken
+            ? getDashboardPath(auth.role)
+            : "/login"
+        }
+>>>>>>> origin/master
         replace
       />
     );
@@ -131,6 +160,7 @@ export default function AppRoutes() {
 
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
+<<<<<<< HEAD
       <Route path="/register/company" element={<CompanyRegistration />} />
 
       {/* Existing employee registration route */}
@@ -140,6 +170,28 @@ export default function AppRoutes() {
       <Route path="/employee/register" element={<EmployeeRegistration />} />
 
       <Route path="/verify-email" element={<EmailVerification />} />
+=======
+      <Route
+        path="/register/company"
+        element={<CompanyRegistration />}
+      />
+
+      <Route
+        path="/register/employee"
+        element={<EmployeeRegistration />}
+      />
+
+      {/* Invitation registration route */}
+      <Route
+        path="/employee/register"
+        element={<EmployeeRegistration />}
+      />
+
+      <Route
+        path="/verify-email"
+        element={<EmailVerification />}
+      />
+>>>>>>> origin/master
 
       {/* ==================== PLATFORM MANAGER ==================== */}
 
@@ -199,6 +251,20 @@ export default function AppRoutes() {
 
         <Route path="payroll" element={<Payroll />} />
 
+<<<<<<< HEAD
+=======
+        <Route path="payslips" element={<PayslipManagement />} />
+
+        <Route path="finance" element={<FinanceManagement />} />
+
+        <Route path="projects" element={<ProjectManagement />} />
+
+        <Route
+          path="employee-projects"
+          element={<EmployeeProjectManagement />}
+        />
+
+>>>>>>> origin/master
         <Route path="reports" element={<Reports />} />
 
         <Route path="profile" element={<AdminProfile />} />
