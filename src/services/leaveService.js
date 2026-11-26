@@ -4,6 +4,25 @@ import axiosInstance from "../utils/axiosInstance";
 const BASE_URL = "/api/admin/leaves";
 
 const leaveService = {
+  getMyLeaves: async () => {
+    const response = await axiosInstance.get(
+      "/api/employees/me/leaves"
+    );
+    return response.data;
+  },
+
+  applyForLeave: async (leaveRequest) => {
+    const response = await axiosInstance.post(
+      "/api/employees/me/leaves",
+      leaveRequest
+    );
+    return response.data;
+  },
+
+  cancelMyLeave: async (id) => {
+    await axiosInstance.delete(`/api/employees/me/leaves/${id}`);
+  },
+
   getAllLeaves: async () => {
     const response = await axiosInstance.get(BASE_URL);
     return response.data;

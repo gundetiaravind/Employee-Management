@@ -418,6 +418,13 @@
   flex-direction: column;
 }
 
+.employee-activity-empty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--emp-muted);
+  font-size: 12px;
+}
+
 .employee-activity-item {
   display: flex;
   align-items: flex-start;
@@ -482,6 +489,18 @@
 .employee-dashboard-note svg {
   flex-shrink: 0;
   color: #15966a;
+}
+
+.employee-dashboard-feedback {
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.employee-dashboard-feedback.error {
+  border: 1px solid #f1c4c4;
+  background: #fff1f1;
+  color: #b42318;
 }
 
 /* PLACEHOLDER PAGES */

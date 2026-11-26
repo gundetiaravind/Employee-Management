@@ -1,81 +1,14 @@
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   BriefcaseBusiness,
   Clock,
   CheckCircle,
   AlertCircle,
-  CalendarDays,
   Eye,
   X,
-  Circle,
-  PlayCircle,
-  CheckCheck,
 } from "lucide-react";
-
-const initialTasks = [
-  {
-    id: 1,
-    title: "Develop Employee Dashboard",
-    description:
-      "Complete the employee dashboard interface and ensure all dashboard components are responsive.",
-    project: "OrgConnect HRMS",
-    assignedBy: "Rahul Sharma",
-    assignedDate: "2026-10-20",
-    dueDate: "2026-11-02",
-    priority: "High",
-    status: "In Progress",
-  },
-  {
-    id: 2,
-    title: "Update Employee Documentation",
-    description:
-      "Review and update the employee onboarding documentation with the latest process information.",
-    project: "HR Documentation",
-    assignedBy: "Priya Reddy",
-    assignedDate: "2026-10-22",
-    dueDate: "2026-11-04",
-    priority: "Medium",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    title: "Prepare Monthly Report",
-    description:
-      "Prepare the monthly activity report and submit it to the reporting manager.",
-    project: "Monthly Reporting",
-    assignedBy: "Arjun Kumar",
-    assignedDate: "2026-10-15",
-    dueDate: "2026-10-29",
-    priority: "High",
-    status: "Completed",
-  },
-  {
-    id: 4,
-    title: "Review UI Components",
-    description:
-      "Review the reusable UI components and identify areas for improvement.",
-    project: "OrgConnect HRMS",
-    assignedBy: "Rahul Sharma",
-    assignedDate: "2026-10-25",
-    dueDate: "2026-11-06",
-    priority: "Low",
-    status: "Pending",
-  },
-  {
-    id: 5,
-    title: "Test Leave Application",
-    description:
-      "Test the employee leave application flow and report any functional issues.",
-    project: "Employee Module",
-    assignedBy: "Priya Reddy",
-    assignedDate: "2026-10-26",
-    dueDate: "2026-11-01",
-    priority: "Medium",
-    status: "In Progress",
-  },
-];
+import axiosInstance from "../../utils/axiosInstance";
 
 const statusOptions = ["Pending", "In Progress", "Completed"];
 
@@ -90,28 +23,53 @@ function formatDate(date) {
 }
 
 function getPriorityClass(priority) {
-  return priority.toLowerCase();
+  return String(priority || "").toLowerCase();
 }
 
 function getStatusClass(status) {
-  return status.toLowerCase().replace(" ", "-");
+  return String(status || "").toLowerCase().replace(" ", "-");
 }
 
 export default function MyWork() {
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [selectedTask, setSelectedTask] = useState(null);
+  const [updatingTaskId, setUpdatingTaskId] = useState(null);
+  const [statusUpdateError, setStatusUpdateError] = useState("");
 
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        setFetchError("");
+        const response = await axiosInstance.get("/api/work/me");
+
+        setTasks(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Failed to fetch work tasks:", error);
+        setFetchError(
+          error.response?.data?.message || "Unable to load work tasks."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
   const filteredTasks = useMemo(() => {
     const value = search.toLowerCase();
 
     return tasks.filter((task) => {
-      const matchesSearch =
-        task.title.toLowerCase().includes(value) ||
-        task.project.toLowerCase().includes(value) ||
-        task.assignedBy.toLowerCase().includes(value);
+      const matchesSearch = [
+        task.title,
+        task.project,
+        task.assignedBy,
+      ].some((field) => String(field || "").toLowerCase().includes(value));
 
       const matchesStatus =
         statusFilter === "All" || task.status === statusFilter;
@@ -142,16 +100,36 @@ export default function MyWork() {
       ? Math.round((completedCount / totalTasks) * 100)
       : 0;
 
-  const updateTaskStatus = (id, status) => {
-    setTasks((previous) =>
-      previous.map((task) =>
-        task.id === id ? { ...task, status } : task
-      )
-    );
+  const updateTaskStatus = async (id, status) => {
+    if (updatingTaskId !== null) return;
 
-    setSelectedTask((previous) =>
-      previous?.id === id ? { ...previous, status } : previous
-    );
+    setUpdatingTaskId(id);
+    setStatusUpdateError("");
+
+    try {
+      const response = await axiosInstance.put(
+        `/api/work/${id}/status`,
+        { status }
+      );
+      const updatedTask = response.data;
+
+      setTasks((previous) =>
+        previous.map((task) =>
+          task.id === updatedTask.id ? updatedTask : task
+        )
+      );
+      setSelectedTask((previous) =>
+        previous?.id === updatedTask.id ? updatedTask : previous
+      );
+    } catch (error) {
+      console.error("Failed to update work task status:", error);
+      setStatusUpdateError(
+        error.response?.data?.message ||
+          "Unable to update task status. Please try again."
+      );
+    } finally {
+      setUpdatingTaskId(null);
+    }
   };
 
   const summaryCards = [
@@ -653,6 +631,12 @@ export default function MyWork() {
         </select>
       </div>
 
+      {statusUpdateError && (
+        <p className="work-empty" role="alert">
+          {statusUpdateError}
+        </p>
+      )}
+
       <div className="work-table-wrap">
         <table className="work-table">
           <thead>
@@ -669,7 +653,19 @@ export default function MyWork() {
           </thead>
 
           <tbody>
-            {filteredTasks.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan="8" className="work-empty">
+                  Loading tasks...
+                </td>
+              </tr>
+            ) : fetchError ? (
+              <tr>
+                <td colSpan="8" className="work-empty">
+                  {fetchError}
+                </td>
+              </tr>
+            ) : filteredTasks.length > 0 ? (
               filteredTasks.map((task) => (
                 <tr key={task.id}>
                   <td>
@@ -687,7 +683,7 @@ export default function MyWork() {
                         task.priority
                       )}`}
                     >
-                      {task.priority}
+                      {task.priority || "--"}
                     </span>
                   </td>
                   <td>
@@ -703,6 +699,7 @@ export default function MyWork() {
                     <select
                       className="work-status-select"
                       value={task.status}
+                      disabled={updatingTaskId !== null}
                       onChange={(event) =>
                         updateTaskStatus(task.id, event.target.value)
                       }
@@ -738,8 +735,7 @@ export default function MyWork() {
       </div>
 
       <p className="work-note">
-        Demo data: Tasks and status updates are stored only in this page's
-        current session. They are not connected to the backend.
+        Status changes are saved automatically.
       </p>
 
       {selectedTask && (
@@ -823,6 +819,7 @@ export default function MyWork() {
               <select
                 className="work-select"
                 value={selectedTask.status}
+                disabled={updatingTaskId !== null}
                 onChange={(event) =>
                   updateTaskStatus(selectedTask.id, event.target.value)
                 }

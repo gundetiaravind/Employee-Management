@@ -24,7 +24,7 @@ const getEmployeePayslips = async (employeeId) => {
 
 const getMyPayslips = async () => {
   const response = await axiosInstance.get(
-    "/api/employees/me/payslips"
+    "/api/payslips/me"
   );
   return response.data;
 };

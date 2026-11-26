@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   CalendarDays,
@@ -10,39 +10,7 @@ import {
   Send,
   BriefcaseBusiness,
 } from "lucide-react";
-
-const initialLeaves = [
-  {
-    id: 1,
-    leaveType: "Casual Leave",
-    startDate: "2026-10-12",
-    endDate: "2026-10-13",
-    days: 2,
-    reason: "Personal work",
-    appliedOn: "2026-10-05",
-    status: "Approved",
-  },
-  {
-    id: 2,
-    leaveType: "Sick Leave",
-    startDate: "2026-10-20",
-    endDate: "2026-10-20",
-    days: 1,
-    reason: "Not feeling well",
-    appliedOn: "2026-10-19",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    leaveType: "Earned Leave",
-    startDate: "2026-09-15",
-    endDate: "2026-09-16",
-    days: 2,
-    reason: "Family function",
-    appliedOn: "2026-09-01",
-    status: "Rejected",
-  },
-];
+import leaveService from "../../services/leaveService";
 
 const leaveTypes = ["Casual Leave", "Sick Leave", "Earned Leave"];
 
@@ -72,22 +40,81 @@ function formatDate(date) {
   });
 }
 
+function getTodayDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function mapLeaveRecord(leave) {
+  const status = String(leave.status || "PENDING").toUpperCase();
+  const displayStatus = {
+    PENDING: "Pending",
+    APPROVED: "Approved",
+    REJECTED: "Rejected",
+  }[status] || status;
+
+  return { ...leave, status: displayStatus };
+}
+
 export default function EmployeeLeaveManagement() {
-  const [leaves, setLeaves] = useState(initialLeaves);
+  const [leaves, setLeaves] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [cancelingLeaveId, setCancelingLeaveId] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadLeaves = async () => {
+      try {
+        setLoading(true);
+        setFetchError("");
+        const data = await leaveService.getMyLeaves();
+
+        if (active) {
+          setLeaves(
+            Array.isArray(data) ? data.map(mapLeaveRecord) : []
+          );
+        }
+      } catch (requestError) {
+        console.error("Failed to load leave requests:", requestError);
+        if (active) {
+          setFetchError(
+            requestError.response?.data?.detail ||
+              requestError.response?.data?.message ||
+              "Unable to load your leave requests."
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadLeaves();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredLeaves = useMemo(() => {
     const value = search.toLowerCase();
 
     return leaves.filter((leave) => {
       const matchesSearch =
-        leave.leaveType.toLowerCase().includes(value) ||
-        leave.reason.toLowerCase().includes(value);
+        String(leave.leaveType || "").toLowerCase().includes(value) ||
+        String(leave.reason || "").toLowerCase().includes(value);
 
       const matchesStatus =
         statusFilter === "All" || leave.status === statusFilter;
@@ -110,7 +137,7 @@ export default function EmployeeLeaveManagement() {
 
   const usedDays = leaves
     .filter((leave) => leave.status === "Approved")
-    .reduce((total, leave) => total + leave.days, 0);
+    .reduce((total, leave) => total + Number(leave.days || 0), 0);
 
   const leaveBalance = Math.max(0, 12 - usedDays);
 
@@ -126,7 +153,7 @@ export default function EmployeeLeaveManagement() {
     setSuccess("");
   };
 
-  const submitLeave = (event) => {
+  const submitLeave = async (event) => {
     event.preventDefault();
 
     if (!form.startDate || !form.endDate || !form.reason.trim()) {
@@ -134,7 +161,7 @@ export default function EmployeeLeaveManagement() {
       return;
     }
 
-    if (form.startDate < new Date().toLocaleDateString("en-CA")) {
+    if (form.startDate < getTodayDate()) {
       setError("Leave start date cannot be in the past.");
       return;
     }
@@ -146,27 +173,55 @@ export default function EmployeeLeaveManagement() {
       return;
     }
 
-    const newLeave = {
-      id: Date.now(),
-      leaveType: form.leaveType,
-      startDate: form.startDate,
-      endDate: form.endDate,
-      days,
-      reason: form.reason.trim(),
-      appliedOn: new Date().toLocaleDateString("en-CA"),
-      status: "Pending",
-    };
+    try {
+      setSubmitting(true);
+      setError("");
+      setSuccess("");
 
-    setLeaves((previous) => [newLeave, ...previous]);
-    setForm(initialForm);
-    setShowForm(false);
-    setSuccess("Your leave application has been submitted.");
+      const createdLeave = await leaveService.applyForLeave({
+        ...form,
+        reason: form.reason.trim(),
+      });
+
+      setLeaves((previous) => [
+        mapLeaveRecord(createdLeave),
+        ...previous,
+      ]);
+      setForm(initialForm);
+      setShowForm(false);
+      setSuccess("Your leave application has been submitted.");
+    } catch (requestError) {
+      console.error("Failed to submit leave request:", requestError);
+      setError(
+        requestError.response?.data?.detail ||
+          requestError.response?.data?.message ||
+          "Unable to submit your leave application."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const cancelLeave = (id) => {
-    setLeaves((previous) =>
-      previous.filter((leave) => leave.id !== id)
-    );
+  const cancelLeave = async (id) => {
+    try {
+      setCancelingLeaveId(id);
+      setError("");
+      setSuccess("");
+      await leaveService.cancelMyLeave(id);
+      setLeaves((previous) =>
+        previous.filter((leave) => leave.id !== id)
+      );
+      setSuccess("Your pending leave request has been cancelled.");
+    } catch (requestError) {
+      console.error("Failed to cancel leave request:", requestError);
+      setError(
+        requestError.response?.data?.detail ||
+          requestError.response?.data?.message ||
+          "Unable to cancel your leave request."
+      );
+    } finally {
+      setCancelingLeaveId(null);
+    }
   };
 
   const summaryCards = [
@@ -574,6 +629,11 @@ export default function EmployeeLeaveManagement() {
       </div>
 
       {success && <div className="leave-message">{success}</div>}
+      {error && !showForm && (
+        <div className="leave-form-error" role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="leave-summary">
         {summaryCards.map((card) => {
@@ -642,7 +702,19 @@ export default function EmployeeLeaveManagement() {
           </thead>
 
           <tbody>
-            {filteredLeaves.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan="8" className="leave-empty">
+                  Loading leave requests...
+                </td>
+              </tr>
+            ) : fetchError ? (
+              <tr>
+                <td colSpan="8" className="leave-empty" role="alert">
+                  {fetchError}
+                </td>
+              </tr>
+            ) : filteredLeaves.length > 0 ? (
               filteredLeaves.map((leave) => (
                 <tr key={leave.id}>
                   <td>
@@ -665,10 +737,15 @@ export default function EmployeeLeaveManagement() {
                   <td>
                     <button
                       className="leave-cancel"
-                      disabled={leave.status !== "Pending"}
+                      disabled={
+                        leave.status !== "Pending" ||
+                        cancelingLeaveId === leave.id
+                      }
                       onClick={() => cancelLeave(leave.id)}
                     >
-                      Cancel
+                      {cancelingLeaveId === leave.id
+                        ? "Cancelling..."
+                        : "Cancel"}
                     </button>
                   </td>
                 </tr>
@@ -686,8 +763,7 @@ export default function EmployeeLeaveManagement() {
       </div>
 
       <p className="leave-demo-note">
-        Demo data: leave balances and applications are stored only in this
-        page's current session. They are not connected to the backend.
+        Leave requests are loaded from and saved to the backend.
       </p>
 
       {showForm && (
@@ -747,7 +823,7 @@ export default function EmployeeLeaveManagement() {
                     name="startDate"
                     type="date"
                     className="leave-input"
-                    min={new Date().toLocaleDateString("en-CA")}
+                    min={getTodayDate()}
                     value={form.startDate}
                     onChange={updateForm}
                     required
@@ -763,7 +839,7 @@ export default function EmployeeLeaveManagement() {
                     className="leave-input"
                     min={
                       form.startDate ||
-                      new Date().toLocaleDateString("en-CA")
+                      getTodayDate()
                     }
                     value={form.endDate}
                     onChange={updateForm}
@@ -800,9 +876,13 @@ export default function EmployeeLeaveManagement() {
                   Cancel
                 </button>
 
-                <button type="submit" className="leave-primary-btn">
+                <button
+                  type="submit"
+                  className="leave-primary-btn"
+                  disabled={submitting}
+                >
                   <Send size={16} />
-                  Submit Application
+                  {submitting ? "Submitting..." : "Submit Application"}
                 </button>
               </div>
             </form>

@@ -3,6 +3,12 @@ import axiosInstance from "../utils/axiosInstance";
 
 const BASE_URL = "/api/admin/attendance";
 
+// Get the authenticated employee's attendance records
+const getMyAttendance = async () => {
+  const response = await axiosInstance.get("/api/attendance/me");
+  return response.data;
+};
+
 // Mark attendance
 const markAttendance = async (attendanceData) => {
   const response = await axiosInstance.post(BASE_URL, attendanceData);
@@ -39,6 +45,7 @@ const getAttendanceByEmployee = async (employeeId) => {
 };
 
 export default {
+  getMyAttendance,
   markAttendance,
   getAllAttendance,
   getAttendanceById,

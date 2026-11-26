@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getAuth } from "../../services/authService";
+import employeeDashboardService from "../../services/employeeDashboardService";
 import { NavLink, Outlet, Navigate, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -36,6 +37,58 @@ const navigation = [
 function getSessionUser() {
   return getAuth();
 }
+
+function formatCurrency(amount) {
+  if (amount == null || !Number.isFinite(Number(amount))) {
+    return "--";
+  }
+
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(amount));
+}
+
+function formatDays(days) {
+  if (days == null || !Number.isFinite(Number(days))) {
+    return "--";
+  }
+
+  const value = Number(days);
+  const formatted = Number.isInteger(value) ? value : value.toFixed(1);
+  return `${formatted} ${value === 1 ? "Day" : "Days"}`;
+}
+
+function formatActivityTime(value) {
+  if (!value) return "--";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const activityDay = new Date(date);
+  activityDay.setHours(0, 0, 0, 0);
+  const daysAgo = Math.floor((today - activityDay) / 86400000);
+
+  if (daysAgo === 0) return "Today";
+  if (daysAgo === 1) return "Yesterday";
+  if (daysAgo > 1 && daysAgo < 7) return `${daysAgo} days ago`;
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+const activityIcons = {
+  ATTENDANCE: CheckCircle2,
+  LEAVE: CalendarDays,
+  TASK: BriefcaseBusiness,
+  PAYROLL: Wallet,
+};
 
 export default function EmployeeDashboard() {
   const navigate = useNavigate();
@@ -143,58 +196,76 @@ export default function EmployeeDashboard() {
 export function EmployeeHome() {
   const user = getSessionUser();
   const firstName = user?.fullName?.trim().split(" ")[0] || "Employee";
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    const loadDashboard = async () => {
+      try {
+        const data = await employeeDashboardService.getDashboard();
+        if (active) setDashboard(data);
+      } catch (requestError) {
+        console.error("Failed to load employee dashboard:", requestError);
+        if (active) {
+          setError(
+            requestError.response?.data?.message ||
+              requestError.response?.data?.detail ||
+              "Unable to load your dashboard data."
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const stats = [
     {
       label: "Attendance This Month",
-      value: "22 Days",
+      value: loading
+        ? "..."
+        : formatDays(dashboard?.attendanceDaysThisMonth),
       detail: "Present days",
       icon: CalendarCheck,
       className: "attendance",
     },
     {
       label: "Leave Balance",
-      value: "8 Days",
+      value: loading ? "..." : formatDays(dashboard?.leaveBalance),
       detail: "Available leaves",
       icon: CalendarDays,
       className: "leave",
     },
     {
       label: "Pending Tasks",
-      value: "3",
+      value: loading ? "..." : dashboard?.pendingTasks ?? "--",
       detail: "Tasks to complete",
       icon: ClipboardList,
       className: "tasks",
     },
     {
       label: "Latest Net Salary",
-      value: "₹32,500",
-      detail: "October 2026",
+      value: loading ? "..." : formatCurrency(dashboard?.latestNetSalary),
+      detail: loading
+        ? "Loading payslip..."
+        : dashboard?.latestPayslipPeriod
+          ? `${dashboard.latestPayslipPeriod} payslip`
+          : "No payslip available",
       icon: CircleDollarSign,
       className: "salary",
     },
   ];
 
-  const recentActivities = [
-    {
-      title: "Attendance marked",
-      description: "Your attendance was recorded for today.",
-      time: "Today",
-      icon: CheckCircle2,
-    },
-    {
-      title: "New work assigned",
-      description: "A new task has been assigned to you.",
-      time: "Yesterday",
-      icon: BriefcaseBusiness,
-    },
-    {
-      title: "Payroll updated",
-      description: "Your October payroll details are available.",
-      time: "2 days ago",
-      icon: Wallet,
-    },
-  ];
+  const recentActivities = dashboard?.recentActivities || [];
 
   return (
     <section className="employee-home">
@@ -295,34 +366,54 @@ export function EmployeeHome() {
           </div>
 
           <div className="employee-activity-list">
-            {recentActivities.map((activity) => {
-              const Icon = activity.icon;
+            {loading ? (
+              <p className="employee-activity-empty">
+                Loading recent activity...
+              </p>
+            ) : error ? (
+              <p className="employee-activity-empty">
+                Recent activity is unavailable.
+              </p>
+            ) : recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => {
+                const Icon = activityIcons[activity.type] || Bell;
 
-              return (
-                <div className="employee-activity-item" key={activity.title}>
-                  <div className="employee-activity-icon">
-                    <Icon size={18} />
-                  </div>
+                return (
+                  <div
+                    className="employee-activity-item"
+                    key={`${activity.type}-${activity.occurredAt}-${index}`}
+                  >
+                    <div className="employee-activity-icon">
+                      <Icon size={18} />
+                    </div>
 
-                  <div className="employee-activity-content">
-                    <strong>{activity.title}</strong>
-                    <p>{activity.description}</p>
-                    <small>{activity.time}</small>
+                    <div className="employee-activity-content">
+                      <strong>{activity.title}</strong>
+                      <p>{activity.description}</p>
+                      <small>{formatActivityTime(activity.occurredAt)}</small>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <p className="employee-activity-empty">
+                No recent activity to show.
+              </p>
+            )}
           </div>
         </section>
       </div>
 
-      <div className="employee-dashboard-note">
-        <CheckCircle2 size={18} />
-        <span>
-          Dashboard figures are demonstration data and will be connected to
-          your employee records later.
-        </span>
-      </div>
+      {error ? (
+        <div className="employee-dashboard-feedback error" role="alert">
+          {error}
+        </div>
+      ) : (
+        <div className="employee-dashboard-note">
+          <CheckCircle2 size={18} />
+          <span>Your dashboard reflects the latest employee records.</span>
+        </div>
+      )}
     </section>
   );
 }

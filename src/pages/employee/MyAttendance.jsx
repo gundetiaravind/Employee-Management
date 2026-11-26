@@ -1,5 +1,5 @@
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   Download,
@@ -10,109 +10,42 @@ import {
   AlertCircle,
   Timer,
 } from "lucide-react";
-
-const initialAttendance = [
-  {
-    id: 1,
-    date: "2026-10-01",
-    checkIn: "09:00 AM",
-    checkOut: "06:00 PM",
-    hours: "9h 00m",
-    status: "Present",
-  },
-  {
-    id: 2,
-    date: "2026-10-02",
-    checkIn: "09:15 AM",
-    checkOut: "06:00 PM",
-    hours: "8h 45m",
-    status: "Late",
-  },
-  {
-    id: 3,
-    date: "2026-10-03",
-    checkIn: "09:00 AM",
-    checkOut: "01:00 PM",
-    hours: "4h 00m",
-    status: "Half Day",
-  },
-  {
-    id: 4,
-    date: "2026-10-05",
-    checkIn: "09:00 AM",
-    checkOut: "06:00 PM",
-    hours: "9h 00m",
-    status: "Present",
-  },
-  {
-    id: 5,
-    date: "2026-10-06",
-    checkIn: "--",
-    checkOut: "--",
-    hours: "--",
-    status: "Absent",
-  },
-  {
-    id: 6,
-    date: "2026-10-07",
-    checkIn: "08:55 AM",
-    checkOut: "06:05 PM",
-    hours: "9h 10m",
-    status: "Present",
-  },
-  {
-    id: 7,
-    date: "2026-10-08",
-    checkIn: "09:20 AM",
-    checkOut: "06:00 PM",
-    hours: "8h 40m",
-    status: "Late",
-  },
-  {
-    id: 8,
-    date: "2026-10-09",
-    checkIn: "09:00 AM",
-    checkOut: "06:00 PM",
-    hours: "9h 00m",
-    status: "Present",
-  },
-  {
-    id: 9,
-    date: "2026-10-10",
-    checkIn: "09:00 AM",
-    checkOut: "01:00 PM",
-    hours: "4h 00m",
-    status: "Half Day",
-  },
-  {
-    id: 10,
-    date: "2026-10-12",
-    checkIn: "--",
-    checkOut: "--",
-    hours: "--",
-    status: "Absent",
-  },
-  {
-    id: 11,
-    date: "2026-10-13",
-    checkIn: "09:00 AM",
-    checkOut: "06:00 PM",
-    hours: "9h 00m",
-    status: "Present",
-  },
-  {
-    id: 12,
-    date: "2026-10-14",
-    checkIn: "09:10 AM",
-    checkOut: "06:00 PM",
-    hours: "8h 50m",
-    status: "Late",
-  },
-];
+import attendanceService from "../../services/attendanceService";
 
 const statusOptions = ["Present", "Absent", "Late", "Half Day"];
 
+function getCurrentMonth() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}`;
+}
+
+function mapAttendanceRecord(record) {
+  const normalizedStatus = String(record.status || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+  const statusLabels = {
+    PRESENT: "Present",
+    ABSENT: "Absent",
+    LATE: "Late",
+    HALF_DAY: "Half Day",
+  };
+
+  return {
+    ...record,
+    date: record.date || record.attendanceDate || "",
+    checkIn: record.checkIn || record.checkInTime || "--",
+    checkOut: record.checkOut || record.checkOutTime || "--",
+    hours: record.hours || "--",
+    status: statusLabels[normalizedStatus] || record.status || "Unknown",
+  };
+}
+
 function formatDate(date) {
+  if (!date) return "--";
+
   return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -146,17 +79,54 @@ function StatusBadge({ status }) {
 }
 
 export default function MyAttendance() {
-  const [records] = useState(initialAttendance);
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [monthFilter, setMonthFilter] = useState("2026-10");
+  const [monthFilter, setMonthFilter] = useState(getCurrentMonth);
   const [statusFilter, setStatusFilter] = useState("All");
 
+  useEffect(() => {
+    let active = true;
+
+    const fetchAttendance = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await attendanceService.getMyAttendance();
+        if (active) {
+          setRecords(
+            Array.isArray(data) ? data.map(mapAttendanceRecord) : []
+          );
+        }
+      } catch (requestError) {
+        console.error("Attendance error:", requestError);
+        if (active) {
+          setError(
+            requestError.response?.data?.detail ||
+              requestError.response?.data?.message ||
+              "Unable to load attendance records."
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    fetchAttendance();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filteredRecords = useMemo(() => {
-    const searchValue = search.toLowerCase();
+    const searchValue = search.trim().toLowerCase();
 
     return records.filter((record) => {
       const matchesSearch =
-        record.date.toLowerCase().includes(searchValue) ||
+        String(record.date || "").toLowerCase().includes(searchValue) ||
         formatDate(record.date).toLowerCase().includes(searchValue);
 
       const matchesMonth =
@@ -190,10 +160,10 @@ export default function MyAttendance() {
   const attendancePercentage =
     totalDays > 0
       ? Math.round(
-          ((presentCount + lateCount + halfDayCount * 0.5) /
-            totalDays) *
-            100
-        )
+        ((presentCount + lateCount + halfDayCount * 0.5) /
+          totalDays) *
+        100
+      )
       : 0;
 
   const summaryCards = [
@@ -626,7 +596,23 @@ export default function MyAttendance() {
           </thead>
 
           <tbody>
-            {filteredRecords.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="my-attendance-empty">
+                  Loading attendance records...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td
+                  colSpan="5"
+                  className="my-attendance-empty"
+                  role="alert"
+                >
+                  {error}
+                </td>
+              </tr>
+            ) : filteredRecords.length > 0 ? (
               filteredRecords.map((record) => (
                 <tr key={record.id}>
                   <td>{formatDate(record.date)}</td>
@@ -651,8 +637,7 @@ export default function MyAttendance() {
       </div>
 
       <p className="my-attendance-note">
-        Demo data: These attendance records are sample records and are not
-        connected to the backend.
+        These attendance records are fetched from the backend database.
       </p>
     </div>
   );
