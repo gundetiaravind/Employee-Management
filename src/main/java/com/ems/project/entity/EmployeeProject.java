@@ -37,7 +37,7 @@ public class EmployeeProject {
     @Column(name = "project_id", nullable = false)
     private Long projectId;
 
-    @Column(name = "start_date", nullable = false)
+    @Column(name = "start_date")
     private LocalDate startDate;
 
     @Column(name = "end_date")
