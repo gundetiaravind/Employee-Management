@@ -1,3 +1,6 @@
+
+
+
 package com.ems.project.entity;
 
 import java.time.LocalDate;
@@ -9,60 +12,58 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
+import lombok.Setter;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
+@Getter
+@Setter
 @Entity
-@Table(
-        name = "projects",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_project_tenant_code",
-                        columnNames = {"tenant_id", "project_code"}
-                )
-        }
-)
+@Table(name = "projects")
 public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Project code is required")
-    @Size(max = 50)
-    @Column(name = "project_code", nullable = false, length = 50)
+    @Column(name = "tenant_id", nullable = false)
+    private String tenantId;
+
+    @Column(name = "project_code", nullable = false)
     private String projectCode;
 
-    @NotBlank(message = "Project name is required")
-    @Size(max = 100)
-    @Column(name = "project_name", nullable = false, length = 100)
+    @Column(name = "project_name", nullable = false)
     private String projectName;
 
     @Column(length = 1000)
     private String description;
 
+    @Column(name = "client_name", nullable = false)
+    private String clientName;
+
+    @Column(name = "project_priority", nullable = false)
+    private String projectPriority;
+
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
-    @Column(name = "end_date", nullable = false)
+    @Column(name = "end_date")
     private LocalDate endDate;
+
+    @Column(name = "reporting_manager_employee_code", nullable = false)
+    private String reportingManagerEmployeeCode;
+
+    @Column(name = "reporting_manager_email", nullable = false)
+    private String reportingManagerEmail;
+
+    @Column(name = "project_status")
+    private String projectStatus;
 
     @Column(nullable = false, length = 30)
     private String status = "PLANNED";
 
-    // Company tenant ID (e.g. COMPANY001)
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     public Project() {
     }
@@ -70,14 +71,9 @@ public class Project {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
+    // ID
     public Long getId() {
         return id;
     }
@@ -86,54 +82,7 @@ public class Project {
         this.id = id;
     }
 
-    public String getProjectCode() {
-        return projectCode;
-    }
-
-    public void setProjectCode(String projectCode) {
-        this.projectCode = projectCode;
-    }
-
-    public String getProjectName() {
-        return projectName;
-    }
-
-    public void setProjectName(String projectName) {
-        this.projectName = projectName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public LocalDate getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
-    }
-
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
+    // Tenant ID
     public String getTenantId() {
         return tenantId;
     }
@@ -142,11 +91,84 @@ public class Project {
         this.tenantId = tenantId;
     }
 
+    // Project Code
+    public String getProjectCode() {
+        return projectCode;
+    }
+
+    public void setProjectCode(String projectCode) {
+        this.projectCode = projectCode;
+    }
+
+    // Project Name
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    // Client Name
+    public String getClientName() {
+        return clientName;
+    }
+
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
+    }
+
+    // Project Start Date
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    // Project End Date
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    // Reporting Manager Employee Code
+    public String getReportingManagerEmployeeCode() {
+        return reportingManagerEmployeeCode;
+    }
+
+    public void setReportingManagerEmployeeCode(String reportingManagerEmployeeCode) {
+        this.reportingManagerEmployeeCode = reportingManagerEmployeeCode;
+    }
+
+    // Reporting Manager Email
+    public String getReportingManagerEmail() {
+        return reportingManagerEmail;
+    }
+
+    public void setReportingManagerEmail(String reportingManagerEmail) {
+        this.reportingManagerEmail = reportingManagerEmail;
+    }
+
+    // Project Status
+    public String getProjectStatus() {
+        return projectStatus;
+    }
+
+    public void setProjectStatus(String projectStatus) {
+        this.projectStatus = projectStatus;
+    }
+
+    // Created At
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

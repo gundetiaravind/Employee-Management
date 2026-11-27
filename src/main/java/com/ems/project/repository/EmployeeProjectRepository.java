@@ -5,22 +5,31 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import com.ems.project.entity.EmployeeProject;
 
-@Repository
 public interface EmployeeProjectRepository
         extends JpaRepository<EmployeeProject, Long> {
+    Optional<EmployeeProject> findByIdAndEmployeeId(
+            Long id, Long employeeId);
 
-    List<EmployeeProject> findAllByTenantId(String tenantId);
+    List<EmployeeProject> findByEmployeeId(Long employeeId);
 
-    Optional<EmployeeProject> findByIdAndTenantId(
-            Long id, String tenantId);
+    List<EmployeeProject> findByTenantId(String tenantId);
 
-    List<EmployeeProject> findAllByEmployeeIdAndTenantId(
+    List<EmployeeProject> findByEmployeeIdAndTenantId(
             Long employeeId, String tenantId);
 
-    List<EmployeeProject> findAllByProjectIdAndTenantId(
+    List<EmployeeProject> findByProjectIdAndTenantId(
             Long projectId, String tenantId);
+
+    List<EmployeeProject> findByEmployeeIdAndTenantIdAndAssignmentStatus(
+            Long employeeId, String tenantId, String assignmentStatus);
+
+    boolean existsByEmployeeIdAndProjectIdAndTenantIdAndAssignmentStatus(
+            Long employeeId,
+            Long projectId,
+            String tenantId,
+            String assignmentStatus
+    );
 }

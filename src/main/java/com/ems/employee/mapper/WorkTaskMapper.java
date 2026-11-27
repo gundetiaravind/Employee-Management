@@ -23,9 +23,10 @@ public class WorkTaskMapper {
                 project != null ? project.getProjectName() : null, // title
                 project != null ? project.getDescription() : null, // description
                 project != null ? project.getProjectName() : null, // project
-                employeeProject.getReportingManagerEmail(),      // assignedBy
-                employeeProject.getProjectStartDate(),           // assignedDate
-                employeeProject.getProjectEndDate(),             // dueDate
+                project != null ? project.getReportingManagerEmail() : null,//// assignedBy
+
+                employeeProject.getStartDate(),           // assignedDate
+                employeeProject.getEndDate(),             // dueDate
                 project.getProjectPriority(),                    // priority
                 employeeProject.getWorkStatus() != null
                         ? employeeProject.getWorkStatus()
