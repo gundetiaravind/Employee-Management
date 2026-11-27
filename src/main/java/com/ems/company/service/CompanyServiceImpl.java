@@ -9,6 +9,7 @@ import com.ems.company.entity.EmployeeStatus;
 import com.ems.company.mapper.CompanyMapper;
 import com.ems.company.repository.CompanyRepository;
 import com.ems.company.repository.CompanyUserRepository;
+import com.ems.company.service.CompanyService;
 import com.ems.employee.entity.Employee;
 import com.ems.employee.repository.EmployeeRepository;
 import com.ems.user.entity.User;
@@ -25,6 +26,17 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.*;
+import java.io.IOException;
+import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import com.ems.user.entity.User;
 
 @Service
 public class CompanyServiceImpl implements CompanyService {
@@ -128,20 +140,20 @@ public class CompanyServiceImpl implements CompanyService {
     response.setAccountType("Owner");
 
     response.setRecentAdmins(
-    companyUserRepository
-        .findByCompany_IdAndRole(
-            authorizedCompanyId, Role.ADMIN)
-        .stream()
-        .sorted(
-            Comparator.comparing(
-                (User user) -> user.getCreatedAt(),
-                Comparator.nullsLast(
-                    Comparator.reverseOrder())))
-        .limit(5)
-        .map(CompanyMapper::toAdminResponse)
-        .collect(Collectors.toList()));
+        companyUserRepository
+            .findByCompany_IdAndRole(
+                authorizedCompanyId, Role.ADMIN)
+            .stream()
+            .sorted(
+                Comparator.comparing(
+                    User::getCreatedAt,
+                    Comparator.nullsLast(
+                        Comparator.reverseOrder())))
+            .limit(5)
+            .map(CompanyMapper::toAdminResponse)
+            .collect(Collectors.toList()));
 
-return response;
+    return response;
   }
 
   // =========================================================
@@ -168,16 +180,16 @@ return response;
     Long authorizedCompanyId = resolveAuthorizedCompanyId(companyId, Role.COMPANY_OWNER);
 
     return companyUserRepository
-    .findByCompany_IdAndRole(
-        authorizedCompanyId, Role.ADMIN)
-    .stream()
-    .sorted(
-        Comparator.comparing(
-            (User user) -> user.getCreatedAt(),
-            Comparator.nullsLast(
-                Comparator.reverseOrder())))
-    .map(CompanyMapper::toAdminResponse)
-    .collect(Collectors.toList());
+        .findByCompany_IdAndRole(
+            authorizedCompanyId, Role.ADMIN)
+        .stream()
+        .sorted(
+            Comparator.comparing(
+                User::getCreatedAt,
+                Comparator.nullsLast(
+                    Comparator.reverseOrder())))
+        .map(CompanyMapper::toAdminResponse)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -243,6 +255,10 @@ return response;
 
     if (request.getPhone() != null) {
       admin.setMobileNumber(request.getPhone());
+    }
+
+    if (request.getDepartment() != null) {
+      admin.setDepartment(request.getDepartment());
     }
 
     if (request.getStatus() != null
@@ -626,4 +642,120 @@ return response;
 
     return company;
   }
+
+  @Override
+    public CompanyOwnerProfileResponse updateOwnerProfile(Long companyId, CompanyOwnerProfileUpdateRequest request) {
+
+        //CompanyOwner owner = getCurrentOwner(); // use your existing method to get logged-in owner
+        Long authorizedCompanyId =
+    resolveAuthorizedCompanyId(companyId, Role.COMPANY_OWNER);
+
+        User owner = companyUserRepository
+            .findFirstByCompany_IdAndRole(
+                authorizedCompanyId,
+                Role.COMPANY_OWNER
+            )
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Company Owner not found for this company."
+            ));
+        // owner.setName(request.getName());
+        // owner.setPhone(request.getPhone());
+
+        owner.setFullName(request.getName());
+        owner.setMobileNumber(request.getPhone());
+
+        //ownerRepository.save(owner);
+        User savedOwner = companyUserRepository.save(owner);
+
+        //return mapToProfileResponse(owner);
+        return CompanyMapper.toOwnerProfile(savedOwner);
+    }
+
+    @Override
+    public CompanyOwnerProfileResponse uploadOwnerProfileImage(Long companyId, MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Please select an image to upload");
+        }
+
+        // Validate file type
+        String contentType = file.getContentType();
+        if (contentType == null || 
+        !(contentType.equals("image/jpeg") || 
+            contentType.equals("image/jpg") ||
+            contentType.equals("image/png") || 
+            contentType.equals("image/webp"))) {
+            throw new IllegalArgumentException("Only JPG, PNG or WEBP images are allowed");
+        }
+
+        // Max 2MB
+        if (file.getSize() > 2 * 1024 * 1024) {
+            throw new IllegalArgumentException("Image size must be less than 2MB");
+        }
+
+        //CompanyOwner owner = getCurrentOwner(); // your existing method
+        Long authorizedCompanyId =
+    resolveAuthorizedCompanyId(companyId, Role.COMPANY_OWNER);
+
+    User owner = companyUserRepository
+    .findFirstByCompany_IdAndRole(
+        authorizedCompanyId,
+        Role.COMPANY_OWNER
+    )
+    .orElseThrow(() -> new ResponseStatusException(
+        HttpStatus.NOT_FOUND,
+        "Company Owner not found for this company."
+    ));
+
+
+        try {
+            // Create uploads folder if it doesn't exist
+            String uploadDir = "uploads/";
+            Path uploadPath = Paths.get(uploadDir);
+
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Generate unique filename using current time
+            String originalFilename = file.getOriginalFilename();
+            String extension = ".jpg";
+
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            String newFileName = System.currentTimeMillis() + extension; // e.g. 1732387654321.jpg
+            Path filePath = uploadPath.resolve(newFileName);
+
+            // Delete old image if exists
+            if (owner.getProfileImageUrl() != null && !owner.getProfileImageUrl().isBlank()) {
+                Path oldFile = Paths.get(owner.getProfileImageUrl().replaceFirst("^/", ""));
+                Files.deleteIfExists(oldFile);
+            }
+
+            // Save the new file
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Path to store in DB
+            String imagePath = "/uploads/" + newFileName;
+
+            owner.setProfileImageUrl(imagePath);
+            //ownerRepository.save(owner);
+            User savedOwner = companyUserRepository.save(owner);
+
+            //return mapToProfileResponse(owner);
+            return CompanyMapper.toOwnerProfile(savedOwner);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload profile image", e);
+        }
+    }
+
+    //import org.springframework.web.multipart.MultipartFile;
+
+    //CompanyOwnerProfileResponse uploadOwnerProfileImage(Long companyId, MultipartFile file);
+
+     //CompanyOwnerProfileResponse uploadOwnerProfileImage(Long companyId, MultipartFile file);
 }

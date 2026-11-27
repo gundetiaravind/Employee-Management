@@ -6,6 +6,7 @@ public class CompanyOwnerProfileResponse {
   private String name;
   private String email;
   private String phone;
+  private String profileImageUrl;
   private String role;
   private String accountStatus;
   private Boolean emailVerified;
@@ -29,4 +30,14 @@ public class CompanyOwnerProfileResponse {
   public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
   public String getCreatedAt() { return createdAt; }
   public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+  //private String profileImageUrl;
+
+  // Getter & Setter
+  public String getProfileImageUrl() {
+      return profileImageUrl;
+  }
+
+  public void setProfileImageUrl(String profileImageUrl) {
+      this.profileImageUrl = profileImageUrl;
+  }
 }

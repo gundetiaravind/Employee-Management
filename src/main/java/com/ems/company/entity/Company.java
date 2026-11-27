@@ -261,4 +261,16 @@ public class Company {
   public void setUpdatedAt(LocalDateTime updatedAt) {
     this.updatedAt = updatedAt;
   }
+
+  @Column(name = "profile_image_url")
+  private String profileImageUrl;
+
+  // Getter & Setter
+  public String getProfileImageUrl() {
+      return profileImageUrl;
+  }
+
+  public void setProfileImageUrl(String profileImageUrl) {
+      this.profileImageUrl = profileImageUrl;
+  }
 }

@@ -41,7 +41,8 @@ public class JwtService {
 
   // Extract username (email) from JWT
   public String extractUsername(String token) {
-    return extractClaim(token, claims -> claims.getSubject());
+
+    return extractClaim(token, Claims::getSubject);
   }
 
   // Extract a specific claim
@@ -75,8 +76,8 @@ public class JwtService {
   // Check whether token is expired
   public boolean isTokenExpired(String token) {
 
-    return extractClaim(token, claims -> claims.getExpiration())
-    .before(new Date());
+    return extractClaim(token, Claims::getExpiration)
+        .before(new Date());
   }
 
   // Validate token

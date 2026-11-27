@@ -2,30 +2,23 @@
 package com.ems.project.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class ProjectResponse {
 
     private Long id;
+    private String tenantId;
     private String projectCode;
     private String projectName;
-    private String description;
+    private String clientName;
+    private String projectStatus;
     private LocalDate startDate;
     private LocalDate endDate;
-    private String status;
+    private String reportingManagerEmployeeCode;
+    private String reportingManagerEmail;
+    private LocalDateTime createdAt;
 
     public ProjectResponse() {
-    }
-
-    public ProjectResponse(Long id, String projectCode, String projectName,
-            String description, LocalDate startDate, LocalDate endDate,
-            String status) {
-        this.id = id;
-        this.projectCode = projectCode;
-        this.projectName = projectName;
-        this.description = description;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.status = status;
     }
 
     public Long getId() {
@@ -34,6 +27,14 @@ public class ProjectResponse {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getProjectCode() {
@@ -52,12 +53,20 @@ public class ProjectResponse {
         this.projectName = projectName;
     }
 
-    public String getDescription() {
-        return description;
+    public String getClientName() {
+        return clientName;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
+    }
+
+    public String getProjectStatus() {
+        return projectStatus;
+    }
+
+    public void setProjectStatus(String projectStatus) {
+        this.projectStatus = projectStatus;
     }
 
     public LocalDate getStartDate() {
@@ -76,11 +85,27 @@ public class ProjectResponse {
         this.endDate = endDate;
     }
 
-    public String getStatus() {
-        return status;
+    public String getReportingManagerEmployeeCode() {
+        return reportingManagerEmployeeCode;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setReportingManagerEmployeeCode(String reportingManagerEmployeeCode) {
+        this.reportingManagerEmployeeCode = reportingManagerEmployeeCode;
+    }
+
+    public String getReportingManagerEmail() {
+        return reportingManagerEmail;
+    }
+
+    public void setReportingManagerEmail(String reportingManagerEmail) {
+        this.reportingManagerEmail = reportingManagerEmail;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

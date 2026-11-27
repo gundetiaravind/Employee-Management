@@ -83,8 +83,7 @@ public class SecurityConfig {
 
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration("/**", configuration);
 
@@ -96,8 +95,7 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
 
-        DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider(customUserDetailsService);
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(customUserDetailsService);
 
         provider.setPasswordEncoder(passwordEncoder);
 
@@ -180,28 +178,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/company/employees/**")
                         .hasAnyRole("COMPANY_OWNER", "ADMIN")
 
-                        // ==================== PAYSLIP APIs ====================
-
-                        // Employee can view their own payslips
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/employees/me/payslips")
-                        .hasRole("EMPLOYEE")
-
-                        // Admin can view an employee's payslips
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/employees/*/payslips")
-                        .hasRole("ADMIN")
-
-                        // Admin can upload an employee's payslip
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/employees/*/payslips")
-                        .hasRole("ADMIN")
-
-                        // ==================== EMPLOYEE APIs ====================
-
                         // Employee self-service APIs
                         .requestMatchers("/api/employees/**")
                         .hasRole("EMPLOYEE")
@@ -214,8 +190,8 @@ public class SecurityConfig {
                         .authenticated())
 
                 // Stateless JWT authentication
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(
+                        SessionCreationPolicy.STATELESS))
 
                 .authenticationProvider(authenticationProvider())
 

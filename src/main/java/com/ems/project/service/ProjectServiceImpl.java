@@ -3,177 +3,188 @@ package com.ems.project.service;
 
 import java.util.List;
 
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import com.ems.project.dto.ProjectRequest;
-import com.ems.project.dto.ProjectResponse;
 import com.ems.project.entity.Project;
-import com.ems.project.mapper.ProjectMapper;
 import com.ems.project.repository.ProjectRepository;
-import com.ems.user.entity.User;
-import com.ems.user.repository.UserRepository;
-
-import jakarta.persistence.EntityNotFoundException;
 
 @Service
-@Transactional
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final ProjectMapper projectMapper;
-    private final UserRepository userRepository;
 
-    public ProjectServiceImpl(
-            ProjectRepository projectRepository,
-            ProjectMapper projectMapper,
-            UserRepository userRepository) {
-
+    public ProjectServiceImpl(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
-        this.projectMapper = projectMapper;
-        this.userRepository = userRepository;
     }
 
-    // Retrieve tenant ID from the authenticated user's company
-    private String getCurrentTenantId() {
-
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || authentication.getName() == null) {
-
-            throw new AccessDeniedException(
-                    "User is not authenticated.");
-        }
-
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Authenticated user not found."));
-
-        if (user.getCompany() == null) {
-            throw new AccessDeniedException(
-                    "User is not associated with any company.");
-        }
-
-        String tenantId = user.getCompany().getCompanyCode();
-
-        if (tenantId == null || tenantId.isBlank()) {
-            throw new AccessDeniedException(
-                    "User's company does not have a valid company code.");
-        }
-
-        return tenantId;
-    }
-
+    // CREATE PROJECT
     @Override
-    public ProjectResponse createProject(ProjectRequest request) {
+    public Project createProject(Project project, String tenantId) {
 
-        validateDates(request);
+        validateTenantId(tenantId);
+        validateProject(project);
 
-        String tenantId = getCurrentTenantId();
+        // Check duplicate project code within the same company
+        if (projectRepository.findByProjectCodeAndTenantId(
+                project.getProjectCode(), tenantId).isPresent()) {
 
-        if (projectRepository.existsByProjectCodeAndTenantId(
-                request.getProjectCode(), tenantId)) {
-
-            throw new IllegalArgumentException(
-                    "Project code already exists in this company.");
+            throw new RuntimeException("Project code already exists");
         }
 
-        Project project = projectMapper.toEntity(request);
-
-        // Tenant ID comes from the authenticated user's company.
+        project.setId(null);
         project.setTenantId(tenantId);
+        project.setProjectStatus("ACTIVE");
 
-        Project savedProject = projectRepository.save(project);
-
-        return projectMapper.toResponse(savedProject);
+        return projectRepository.save(project);
     }
 
+    // GET ALL PROJECTS
     @Override
-    @Transactional(readOnly = true)
-    public List<ProjectResponse> getAllProjects() {
+    public List<Project> getAllProjects(String tenantId) {
 
-        String tenantId = getCurrentTenantId();
+        validateTenantId(tenantId);
 
-        return projectRepository.findAllByTenantId(tenantId)
-                .stream()
-                .map(projectMapper::toResponse)
-                .toList();
+        return projectRepository.findByTenantId(tenantId);
     }
 
+    // GET PROJECT BY ID
     @Override
-    @Transactional(readOnly = true)
-    public ProjectResponse getProjectById(Long id) {
+    public Project getProjectById(Long projectId, String tenantId) {
 
-        String tenantId = getCurrentTenantId();
+        validateTenantId(tenantId);
 
-        Project project = projectRepository
-                .findByIdAndTenantId(id, tenantId)
+        return projectRepository
+                .findByIdAndTenantId(projectId, tenantId)
                 .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Project not found."));
-
-        return projectMapper.toResponse(project);
+                        new RuntimeException("Project not found"));
     }
 
+    // UPDATE PROJECT
     @Override
-    public ProjectResponse updateProject(
-            Long id, ProjectRequest request) {
+    public Project updateProject(
+            Long projectId, Project updatedProject, String tenantId) {
 
-        validateDates(request);
+        validateTenantId(tenantId);
 
-        String tenantId = getCurrentTenantId();
+        Project existingProject = getProjectById(projectId, tenantId);
 
-        Project existingProject = projectRepository
-                .findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Project not found."));
+        validateProject(updatedProject);
 
-        if (!existingProject.getProjectCode().equals(
-                request.getProjectCode())
-                && projectRepository.existsByProjectCodeAndTenantId(
-                        request.getProjectCode(), tenantId)) {
+        // Check duplicate project code, excluding current project
+        Project duplicateProject = projectRepository
+                .findByProjectCodeAndTenantId(
+                        updatedProject.getProjectCode(), tenantId)
+                .orElse(null);
 
-            throw new IllegalArgumentException(
-                    "Project code already exists in this company.");
+        if (duplicateProject != null &&
+                !duplicateProject.getId().equals(existingProject.getId())) {
+
+            throw new RuntimeException("Project code already exists");
         }
 
-        // Update permitted project fields.
-        existingProject.setProjectCode(request.getProjectCode());
-        existingProject.setProjectName(request.getProjectName());
-        existingProject.setDescription(request.getDescription());
-        existingProject.setStartDate(request.getStartDate());
-        existingProject.setEndDate(request.getEndDate());
+        existingProject.setProjectCode(updatedProject.getProjectCode());
+        existingProject.setProjectName(updatedProject.getProjectName());
+        existingProject.setClientName(updatedProject.getClientName());
+        existingProject.setStartDate(updatedProject.getStartDate());
+        existingProject.setEndDate(updatedProject.getEndDate());
 
-        // Preserve existing status if no new status is provided.
-        if (request.getStatus() != null
-                && !request.getStatus().isBlank()) {
+        existingProject.setReportingManagerEmployeeCode(
+                updatedProject.getReportingManagerEmployeeCode());
 
-            existingProject.setStatus(request.getStatus());
+        existingProject.setReportingManagerEmail(
+                updatedProject.getReportingManagerEmail());
+
+        // Preserve existing status; fix NULL status to ACTIVE
+        if (updatedProject.getProjectStatus() != null &&
+                !updatedProject.getProjectStatus().trim().isEmpty()) {
+
+            existingProject.setProjectStatus(
+                    updatedProject.getProjectStatus());
+
+        } else if (existingProject.getProjectStatus() == null ||
+                existingProject.getProjectStatus().trim().isEmpty()) {
+
+            existingProject.setProjectStatus("ACTIVE");
         }
 
-        Project updatedProject =
-                projectRepository.save(existingProject);
-
-        return projectMapper.toResponse(updatedProject);
+        return projectRepository.save(existingProject);
     }
 
-    private void validateDates(ProjectRequest request) {
+    // DELETE PROJECT
+    @Override
+    public void deleteProject(Long projectId, String tenantId) {
 
-        if (request.getStartDate() != null
-                && request.getEndDate() != null
-                && request.getEndDate().isBefore(
-                        request.getStartDate())) {
+        Project project = getProjectById(projectId, tenantId);
 
-            throw new IllegalArgumentException(
-                    "Project end date cannot be earlier than start date.");
+        projectRepository.delete(project);
+    }
+
+    // VALIDATE TENANT ID
+    private void validateTenantId(String tenantId) {
+
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new RuntimeException("Tenant ID is required");
+        }
+    }
+
+    // PROJECT VALIDATION
+    private void validateProject(Project project) {
+
+        if (project == null) {
+            throw new RuntimeException("Project details are required");
+        }
+
+        if (project.getProjectCode() == null ||
+                project.getProjectCode().trim().isEmpty()) {
+
+            throw new RuntimeException("Project code is required");
+        }
+
+        if (project.getProjectName() == null ||
+                project.getProjectName().trim().isEmpty()) {
+
+            throw new RuntimeException("Project name is required");
+        }
+
+        if (project.getClientName() == null ||
+                project.getClientName().trim().isEmpty()) {
+
+            throw new RuntimeException("Client name is required");
+        }
+
+        if (project.getStartDate() == null) {
+            throw new RuntimeException("Project start date is required");
+        }
+
+        if (project.getEndDate() == null) {
+            throw new RuntimeException("Project end date is required");
+        }
+
+        if (project.getEndDate().isBefore(project.getStartDate())) {
+
+            throw new RuntimeException(
+                    "Project end date cannot be earlier than start date");
+        }
+
+        if (project.getReportingManagerEmployeeCode() == null ||
+                project.getReportingManagerEmployeeCode().trim().isEmpty()) {
+
+            throw new RuntimeException(
+                    "Reporting manager employee code is required");
+        }
+
+        if (project.getReportingManagerEmail() == null ||
+                project.getReportingManagerEmail().trim().isEmpty()) {
+
+            throw new RuntimeException(
+                    "Reporting manager email is required");
+        }
+
+        if (!project.getReportingManagerEmail().matches(
+                "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+
+            throw new RuntimeException(
+                    "Invalid reporting manager email");
         }
     }
 }

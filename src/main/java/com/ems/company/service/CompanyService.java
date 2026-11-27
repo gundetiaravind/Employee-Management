@@ -4,6 +4,12 @@ import com.ems.company.dto.*;
 
 import java.util.List;
 
+//import com.ems.company.dto.CompanyOwnerProfileUpdateRequest;
+//import com.ems.company.dto.CompanyOwnerProfileResponse;
+import com.ems.company.dto.*;
+
+import org.springframework.web.multipart.MultipartFile;
+
 public interface CompanyService {
 
   CompanyOwnerDashboardResponse getDashboard(Long companyId);
@@ -32,5 +38,18 @@ public interface CompanyService {
 
   CompanySettingsResponse updateCompanySettings(Long companyId, CompanyUpdateSettingsRequest request);
 
-  CompanyOwnerProfileResponse getOwnerProfile(Long companyId);
+      // Owner profile
+    CompanyOwnerProfileResponse getOwnerProfile(Long companyId);
+
+    // Update personal information only
+    CompanyOwnerProfileResponse updateOwnerProfile(
+        Long companyId,
+        CompanyOwnerProfileUpdateRequest request
+    );
+
+    // Upload profile image only
+    CompanyOwnerProfileResponse uploadOwnerProfileImage(
+        Long companyId,
+        MultipartFile file
+    );
 }

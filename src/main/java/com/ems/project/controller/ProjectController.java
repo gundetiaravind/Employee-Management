@@ -2,19 +2,22 @@
 package com.ems.project.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
+import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.ems.project.dto.ProjectRequest;
+import com.ems.project.dto.CreateProjectRequest;
 import com.ems.project.dto.ProjectResponse;
+import com.ems.project.entity.Project;
+import com.ems.project.mapper.ProjectMapper;
 import com.ems.project.service.ProjectService;
 
-import jakarta.validation.Valid;
-
 @RestController
-@RequestMapping("/api/admin/projects")
+@RequestMapping("/api/projects")
 public class ProjectController {
 
     private final ProjectService projectService;
@@ -23,34 +26,102 @@ public class ProjectController {
         this.projectService = projectService;
     }
 
+    // CREATE PROJECT
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(
-            @Valid @RequestBody ProjectRequest request) {
+            @Valid @RequestBody CreateProjectRequest request,
+            @RequestParam String tenantId) {
 
-        ProjectResponse response = projectService.createProject(request);
+        Project project = new Project();
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        project.setProjectCode(request.getProjectCode());
+        project.setProjectName(request.getProjectName());
+        project.setClientName(request.getClientName());
+        project.setStartDate(request.getProjectStartDate());
+        project.setEndDate(request.getProjectEndDate());
+
+        project.setReportingManagerEmployeeCode(
+                request.getReportingManagerEmployeeCode());
+
+        project.setReportingManagerEmail(
+                request.getReportingManagerEmail());
+
+        // Set default status for new projects
+        project.setProjectStatus("ACTIVE");
+
+        Project savedProject =
+                projectService.createProject(project, tenantId);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ProjectMapper.toResponse(savedProject));
     }
 
+    // VIEW ALL PROJECTS
     @GetMapping
-    public ResponseEntity<List<ProjectResponse>> getAllProjects() {
+    public ResponseEntity<List<ProjectResponse>> getAllProjects(
+            @RequestParam String tenantId) {
 
-        return ResponseEntity.ok(projectService.getAllProjects());
+        List<ProjectResponse> response = projectService
+                .getAllProjects(tenantId)
+                .stream()
+                .map(ProjectMapper::toResponse)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 
+    // VIEW PROJECT BY ID
     @GetMapping("/{id}")
     public ResponseEntity<ProjectResponse> getProjectById(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestParam String tenantId) {
 
-        return ResponseEntity.ok(projectService.getProjectById(id));
+        Project project =
+                projectService.getProjectById(id, tenantId);
+
+        return ResponseEntity.ok(
+                ProjectMapper.toResponse(project));
     }
 
+    // UPDATE PROJECT
     @PutMapping("/{id}")
     public ResponseEntity<ProjectResponse> updateProject(
             @PathVariable Long id,
-            @Valid @RequestBody ProjectRequest request) {
+            @Valid @RequestBody CreateProjectRequest request,
+            @RequestParam String tenantId) {
+
+        Project project = new Project();
+
+        project.setProjectCode(request.getProjectCode());
+        project.setProjectName(request.getProjectName());
+        project.setClientName(request.getClientName());
+        project.setStartDate(request.getProjectStartDate());
+        project.setEndDate(request.getProjectEndDate());
+
+        project.setReportingManagerEmployeeCode(
+                request.getReportingManagerEmployeeCode());
+
+        project.setReportingManagerEmail(
+                request.getReportingManagerEmail());
+
+        // Do not set status here.
+        // The service preserves the existing project status.
+
+        Project updatedProject =
+                projectService.updateProject(id, project, tenantId);
 
         return ResponseEntity.ok(
-                projectService.updateProject(id, request));
+                ProjectMapper.toResponse(updatedProject));
+    }
+
+    // DELETE PROJECT
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProject(
+            @PathVariable Long id,
+            @RequestParam String tenantId) {
+
+        projectService.deleteProject(id, tenantId);
+
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,54 +1,29 @@
 
 package com.ems.project.mapper;
 
-import org.springframework.stereotype.Component;
-
-import com.ems.project.dto.ProjectRequest;
 import com.ems.project.dto.ProjectResponse;
 import com.ems.project.entity.Project;
 
-@Component
 public class ProjectMapper {
 
-    public Project toEntity(ProjectRequest request) {
-        Project project = new Project();
+    public static ProjectResponse toResponse(Project project) {
 
-        project.setProjectCode(request.getProjectCode());
-        project.setProjectName(request.getProjectName());
-        project.setDescription(request.getDescription());
-        project.setStartDate(request.getStartDate());
-        project.setEndDate(request.getEndDate());
-
-        if (request.getStatus() != null && !request.getStatus().isBlank()) {
-            project.setStatus(request.getStatus());
-        }
-
-        return project;
-    }
-
-    public ProjectResponse toResponse(Project project) {
         ProjectResponse response = new ProjectResponse();
 
         response.setId(project.getId());
+        response.setTenantId(project.getTenantId());
         response.setProjectCode(project.getProjectCode());
         response.setProjectName(project.getProjectName());
-        response.setDescription(project.getDescription());
+        response.setClientName(project.getClientName());
+        response.setProjectStatus(project.getProjectStatus());
         response.setStartDate(project.getStartDate());
         response.setEndDate(project.getEndDate());
-        response.setStatus(project.getStatus());
+        response.setReportingManagerEmployeeCode(
+                project.getReportingManagerEmployeeCode());
+        response.setReportingManagerEmail(
+                project.getReportingManagerEmail());
+        response.setCreatedAt(project.getCreatedAt());
 
         return response;
-    }
-
-    public void updateEntity(Project project, ProjectRequest request) {
-        project.setProjectCode(request.getProjectCode());
-        project.setProjectName(request.getProjectName());
-        project.setDescription(request.getDescription());
-        project.setStartDate(request.getStartDate());
-        project.setEndDate(request.getEndDate());
-
-        if (request.getStatus() != null && !request.getStatus().isBlank()) {
-            project.setStatus(request.getStatus());
-        }
     }
 }

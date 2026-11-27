@@ -1,4 +1,3 @@
-
 package com.ems.project.entity;
 
 import java.time.LocalDate;
@@ -16,21 +15,17 @@ import jakarta.persistence.UniqueConstraint;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
 
 @Entity
 @Table(
-    name = "projects",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uk_project_tenant_code",
-            columnNames = {"tenant_id", "project_code"}
-        )
-    }
+        name = "projects",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_project_tenant_code",
+                        columnNames = {"tenant_id", "project_code"}
+                )
+        }
 )
-@Getter
-@Setter
 public class Project {
 
     @Id
@@ -49,9 +44,6 @@ public class Project {
 
     @Column(length = 1000)
     private String description;
-
-    @Column(length = 50)
-    private String projectPriority;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;

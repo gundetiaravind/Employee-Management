@@ -13,15 +13,6 @@ import com.ems.project.entity.EmployeeProject;
 public interface EmployeeProjectRepository
         extends JpaRepository<EmployeeProject, Long> {
 
-    List<EmployeeProject> findByEmployeeId(Long employeeId);
-
-    Optional<EmployeeProject> findByIdAndEmployeeId(
-            Long id, Long employeeId);
-
-    List<EmployeeProject> findByEmployeeIdAndAssignmentStatus(
-            Long employeeId,
-            String assignmentStatus);
-
     List<EmployeeProject> findAllByTenantId(String tenantId);
 
     Optional<EmployeeProject> findByIdAndTenantId(

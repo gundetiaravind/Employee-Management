@@ -27,6 +27,7 @@ public class UserAccountServiceImpl implements UserAccountService {
             String email,
             String password,
             String mobileNumber,
+            String department,
             Role role,
             UserStatus accountStatus,
             boolean emailVerified,
@@ -77,6 +78,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                 .email(normalizedEmail)
                 .password(passwordEncoder.encode(password))
                 .mobileNumber(mobileNumber)
+                .department(department)
                 .role(role)
                 .accountStatus(accountStatus)
                 .emailVerified(emailVerified)
