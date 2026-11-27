@@ -51,9 +51,7 @@ export default function MyWork() {
         setTasks(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error("Failed to fetch work tasks:", error);
-        setFetchError(
-          error.response?.data?.message || "Unable to load work tasks."
-        );
+        setFetchError("Unable to load work tasks. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -124,8 +122,7 @@ export default function MyWork() {
     } catch (error) {
       console.error("Failed to update work task status:", error);
       setStatusUpdateError(
-        error.response?.data?.message ||
-          "Unable to update task status. Please try again."
+        "Unable to update task status. Please try again later."
       );
     } finally {
       setUpdatingTaskId(null);

@@ -210,11 +210,7 @@ export function EmployeeHome() {
       } catch (requestError) {
         console.error("Failed to load employee dashboard:", requestError);
         if (active) {
-          setError(
-            requestError.response?.data?.message ||
-              requestError.response?.data?.detail ||
-              "Unable to load your dashboard data."
-          );
+          setError("Unable to load your dashboard data. Please try again later.");
         }
       } finally {
         if (active) setLoading(false);
